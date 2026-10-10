@@ -3,10 +3,10 @@
   Paste this file into Delta and execute. Modules are fetched from GitHub raw
   so you only ever paste this one file. A Home tab reports load status.
 
-  Module convention: a file either returns a value directly (util, ui) or a
-  factory function `return function(U, UI, C, win) ... end` (config, features).
-  run() executes the chunk, then calls the result if it is a function, so both
-  styles work with one code path.
+  Module convention: a file either returns a value directly (util, ui, quests)
+  or a factory function `return function(U, UI, C, win) ... end` (config,
+  features). run() executes the chunk, then calls the result if it is a
+  function, so both styles work with one code path.
 ]]
 local REPO   = "MrEuwn/bfhub"
 local BRANCH = "main"
@@ -27,8 +27,6 @@ local function fetch(name)
     return nil, "HttpGet failed (3 tries): " .. tostring(last)
 end
 
--- run("config", U) -> executes config.lua, then calls its factory with U.
--- run("util")      -> util.lua returns a table directly, returned as-is.
 local function run(name, ...)
     local chunk, ferr = fetch(name)
     if not chunk then return nil, ferr end
@@ -47,26 +45,31 @@ local U, e1 = run("util");   assert(U,  "util: "   .. tostring(e1))
 local UI, e2 = run("ui");    assert(UI, "ui: "     .. tostring(e2))
 local C, e3 = run("config", U); assert(C, "config: " .. tostring(e3))
 
+-- quest table (level range -> quest name/number/mob/giver position)
+local quests, eq = run("quests")
+C.quests = (type(quests) == "table") and quests or {}
+
 local win = UI.new("BFHub")
 C.win = win
 
--- Home tab shows exactly what loaded and any error, so a broken module is
+-- Home tab reports exactly what loaded and any error, so a broken module is
 -- never a silent empty window.
 local home = win:tab("Home")
 local st = home:section("Load Status")
 local info = st:paragraph("loading modules...")
 local lines = {}
 local function say(s) table.insert(lines, s); info.Text = table.concat(lines, "\n") end
-say("BFHub - Sea " .. tostring(U.currentSea()))
+say("BFHub - Sea " .. tostring(U.currentSea()) .. "  Lv." .. tostring(U.level()))
+say("quests: " .. tostring(#C.quests) .. " rows")
 say("repo: " .. REPO .. "@" .. BRANCH)
 
-local ORDER = { "farm", "combat", "fruit", "esp", "teleport", "sea", "shop", "misc" }
+local ORDER = { "farm", "combat", "fruit", "esp", "teleport", "sea", "bones", "boss", "shop", "misc" }
 local mods, loaded = {}, {}
 for _, name in ipairs(ORDER) do
     local mod, merr = run(name, U, UI, C, win)
     if type(mod) == "table" then
         mod.name = name
-        table.insert(mods, mod)     -- array: scheduler uses ipairs
+        table.insert(mods, mod)
         table.insert(loaded, name)
         say("[ok] " .. name)
     else
@@ -75,7 +78,6 @@ for _, name in ipairs(ORDER) do
 end
 say(("done: %d/%d modules"):format(#loaded, #ORDER))
 
--- one central scheduler thread (default 10 Hz) -> lightest option on mobile
 task.spawn(function()
     while true do
         for _, m in ipairs(mods) do

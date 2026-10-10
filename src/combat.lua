@@ -1,23 +1,17 @@
--- Combat: fast attack, auto skill, kill aura, godmode, buso/ken, race v4.
+-- Combat: fast attack, auto skill, kill aura, godmode, buso/ken, auto Buddha, race v4.
 return function(U, UI, C, win)
     local M = {}
-    local fast, aura, god, buso, ken
+    local fast, aura, god, buso, ken, buddha
+    local lastBuddha = 0
 
     local function nearbyMobs(radius)
         local r = U.root(); if not r then return {} end
         radius = radius or 30
         local out = {}
-        for _, m in ipairs(workspace:GetChildren()) do
-            if m:IsA("Model") and m:FindFirstChildOfClass("Humanoid") then
-                local isP = false
-                for _, p in ipairs(U.Players:GetPlayers()) do if p.Character == m then isP = true end end
-                if not isP then
-                    local hrp = m:FindFirstChild("HumanoidRootPart")
-                    local h = m:FindFirstChildOfClass("Humanoid")
-                    if hrp and h and h.Health > 0 and (hrp.Position - r.Position).Magnitude <= radius then
-                        table.insert(out, m)
-                    end
-                end
+        for _, m in ipairs(U.mobs(nil)) do
+            local hrp = m:FindFirstChild("HumanoidRootPart")
+            if hrp and (hrp.Position - r.Position).Magnitude <= radius then
+                table.insert(out, m)
             end
         end
         return out
@@ -34,16 +28,18 @@ return function(U, UI, C, win)
     s:toggle("Auto Buso (Haki)", false, function(on) buso = on end)
     s:toggle("Auto Ken (Observation)", false, function(on) ken = on end)
 
+    t:section("Fruit")
+    s:toggle("Auto Buddha Transform", false, function(on) buddha = on end)
+    s:label("Keeps Buddha transformed for wide M1 hitbox while farming.")
+
     t:section("Race V4")
     s:button("Transform Race V4", function()
-        U.commF("RaceV4Transform")   -- ponytail: exact remote name may differ; harmless if nil
+        U.commF("RaceV4Transform")   -- ponytail: remote name version-sensitive
         U.notify("Race V4 transform fired")
     end)
 
     function M.tick()
-        if fast then
-            U.attack()
-        end
+        if fast then U.attack() end
         if aura then
             local r = U.root()
             for _, m in ipairs(nearbyMobs(C.get("auraRadius") or 30)) do
@@ -58,6 +54,15 @@ return function(U, UI, C, win)
         end
         if buso then U.commE("Buso") end
         if ken then U.commE("Ken") end
+        if buddha and os.clock() - lastBuddha > 1 then
+            lastBuddha = os.clock()
+            -- Buddha transform keybind is "Z"; a fruit skill activate is safer
+            local c = U.player.Character
+            local tool = c and c:FindFirstChildOfClass("Tool")
+            if tool and string.find(tool.Name, "Buddha", 1, true) then
+                pcall(function() tool:Activate() end)
+            end
+        end
     end
 
     return M

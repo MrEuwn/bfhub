@@ -24,7 +24,7 @@ return function(U, UI, C, win)
         return bb
     end
 
-    local opts = { fruit = false, player = false, chest = false, island = false }
+    local opts = { fruit = false, player = false, chest = false, island = false, enemy = false }
 
     local t = win:tab("ESP")
     local s = t:section("World")
@@ -33,8 +33,15 @@ return function(U, UI, C, win)
     s:toggle("Island ESP", false, function(on) opts.island = on end)
     t:section("Players")
     s:toggle("Player ESP", false, function(on) opts.player = on end)
+    s:toggle("Enemy ESP", false, function(on) opts.enemy = on end)
 
     function M.tick()
+        if opts.enemy then
+            for _, m in ipairs(U.mobs(nil)) do
+                local h = m:FindFirstChildOfClass("Humanoid")
+                tag(m, m.Name .. (h and (" [" .. math.floor(h.Health) .. "]") or ""), Color3.fromRGB(255, 120, 60), "BFHubEnemy")
+            end
+        end
         if opts.fruit then
             for _, d in ipairs(workspace:GetDescendants()) do
                 if d:IsA("Tool") and string.find(string.lower(d.Name), "fruit", 1, true) then

@@ -6,6 +6,7 @@ U.RunService = game:GetService("RunService")
 U.Http = game:GetService("HttpService")
 U.Teleport = game:GetService("TeleportService")
 U.Lighting = game:GetService("Lighting")
+U.Tween = game:GetService("TweenService")
 U.VirtualUser = game:GetService("VirtualUser")
 U.ReplicatedStorage = game:GetService("ReplicatedStorage")
 U.StarterGui = game:GetService("StarterGui")
@@ -55,6 +56,23 @@ function U.tp(pos, yOff)
     return true
 end
 
+-- Smooth move (optional). Tween is prettier but slower than a hard CFrame set.
+function U.tweenTo(pos, time)
+    local r = U.root()
+    if not r then return end
+    local target
+    if typeof(pos) == "Vector3" then target = CFrame.new(pos)
+    elseif typeof(pos) == "CFrame" then target = pos
+    elseif typeof(pos) == "BasePart" then target = pos.CFrame
+    elseif typeof(pos) == "Model" then
+        local p = pos.PrimaryPart or pos:FindFirstChildWhichIsA("BasePart")
+        if not p then return end
+        target = p.CFrame
+    end
+    local t = U.Tween:Create(r, TweenInfo.new(time or 0.4, Enum.EasingStyle.Linear), { CFrame = target })
+    t:Play(); t.Completed:Wait()
+end
+
 -- Remotes
 function U.commF(...)
     local R = U.ReplicatedStorage:FindFirstChild("Remotes")
@@ -101,8 +119,48 @@ function U.currentSea()
     return 0
 end
 
--- Attack helper: activate equipped tool + a virtual click. Generic, works for
--- melee / sword / gun / fruit. Combat modules call this.
+-- Mobs live under workspace.Enemies (NOT direct children of workspace).
+function U.enemies()
+    return workspace:FindFirstChild("Enemies")
+end
+
+function U.isPlayerModel(m)
+    for _, p in ipairs(U.Players:GetPlayers()) do
+        if p.Character == m then return true end
+    end
+    return false
+end
+
+-- All alive enemy models, optionally filtered by name substring.
+function U.mobs(filter)
+    local out = {}
+    local e = U.enemies()
+    if not e then return out end
+    filter = filter and string.lower(filter)
+    for _, m in ipairs(e:GetChildren()) do
+        local h = m:FindFirstChildOfClass("Humanoid")
+        local hrp = m:FindFirstChild("HumanoidRootPart")
+        if h and hrp and h.Health > 0 and not U.isPlayerModel(m) then
+            if not filter or string.find(string.lower(m.Name), filter, 1, true) then
+                table.insert(out, m)
+            end
+        end
+    end
+    return out
+end
+
+function U.nearestMob(filter)
+    local r = U.root(); if not r then return nil end
+    local best, bd
+    for _, m in ipairs(U.mobs(filter)) do
+        local hrp = m:FindFirstChild("HumanoidRootPart")
+        local d = (hrp.Position - r.Position).Magnitude
+        if not bd or d < bd then bd = d; best = m end
+    end
+    return best
+end
+
+-- Attack helper: activate equipped tool + a virtual click.
 function U.attack()
     local c = U.player.Character
     local tool = c and c:FindFirstChildOfClass("Tool")
@@ -118,6 +176,73 @@ function U.touch(a, b)
         pcall(function() firetouchinterest(a, b, 0) end)
         pcall(function() firetouchinterest(a, b, 1) end)
     end
+end
+
+-- Equip the first tool in the backpack/character matching a weapon category.
+-- ponytail: keyword match, not the game's real ToolType enum. Extend the lists
+-- if a weapon is missing.
+U.WEAPON = {
+    Melee = { "Combat", "Black Leg", "Electro", "Fishman Karate", "Superhuman", "Death Step",
+              "Sharkman Karate", "Dragon Talon", "Godhuman", "Sanguine Art", "Buso" },
+    Sword = { "Sword", "Katana", "Blade", "Saber", "Cutlass", "Trident", "Halberd", "Yama",
+              "Koko", "Shisui", "Tushita", "Pole", "Scythe", "Rengoku", "Longsword", "Dark Blade" },
+    Gun   = { "Gun", "Pistol", "Rifle", "Slingshot", "Bazooka", "Cannon", "Flintlock",
+              "Acidum", "Kabucha", "Bow", "Revolver", "Shotgun" },
+    Fruit = { "-" },   -- fruit tools are named like "Dragon-Dragon"; matched by that pattern
+}
+
+function U.equipWeapon(kind)
+    local c = U.player.Character
+    if not c then return false end
+    local hum = c:FindFirstChildOfClass("Humanoid")
+    if not hum then return false end
+    local function matches(name)
+        if kind == "Fruit" then return string.find(name, "%-") ~= nil end
+        for _, kw in ipairs(U.WEAPON[kind] or {}) do
+            if string.find(string.lower(name), string.lower(kw), 1, true) then return true end
+        end
+        return false
+    end
+    local sources = { c, U.player:FindFirstChild("Backpack") }
+    for _, src in ipairs(sources) do
+        if src then
+            for _, tool in ipairs(src:GetChildren()) do
+                if tool:IsA("Tool") and matches(tool.Name) then
+                    if tool.Parent ~= c then
+                        pcall(function() hum:EquipTool(tool) end)
+                        task.wait(0.1)
+                    end
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
+-- Level / quest state
+function U.level()
+    local d = U.player:FindFirstChild("Data")
+    local lv = d and d:FindFirstChild("Level")
+    return lv and lv.Value or 0
+end
+
+function U.questActive()
+    local pg = U.player:FindFirstChild("PlayerGui")
+    local main = pg and pg:FindFirstChild("Main")
+    local q = main and main:FindFirstChild("Quest")
+    return q and q.Visible == true
+end
+
+function U.questTitle()
+    local pg = U.player:FindFirstChild("PlayerGui")
+    local main = pg and pg:FindFirstChild("Main")
+    local q = main and main:FindFirstChild("Quest")
+    if not q then return "" end
+    local cont = q:FindFirstChild("Container")
+    local tt = cont and cont:FindFirstChild("QuestTitle")
+    local t = tt and tt:FindFirstChild("Title")
+    return t and t.Text or ""
 end
 
 return U
