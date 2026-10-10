@@ -2,6 +2,11 @@
   BFHub - Blox Fruits script hub (Delta / mobile friendly, no UI library).
   Paste this file into Delta and execute. Modules are fetched from GitHub raw
   so you only ever paste this one file. A Home tab reports load status.
+
+  Module convention: a file either returns a value directly (util, ui) or a
+  factory function `return function(U, UI, C, win) ... end` (config, features).
+  run() executes the chunk, then calls the result if it is a function, so both
+  styles work with one code path.
 ]]
 local REPO   = "MrEuwn/bfhub"
 local BRANCH = "main"
@@ -9,7 +14,7 @@ local BASE   = ("https://raw.githubusercontent.com/%s/%s/src/"):format(REPO, BRA
 
 local function fetch(name)
     local last
-    for attempt = 1, 3 do
+    for _ = 1, 3 do
         local ok, src = pcall(function() return game:HttpGet(BASE .. name .. ".lua") end)
         if ok and type(src) == "string" and #src > 0 then
             local fn, err = loadstring(src, "BFHub:" .. name)
@@ -22,9 +27,25 @@ local function fetch(name)
     return nil, "HttpGet failed (3 tries): " .. tostring(last)
 end
 
-local U  = assert(fetch("util"),   "util required")()
-local UI = assert(fetch("ui"),     "ui required")()
-local C  = assert(fetch("config"), "config required")(U)
+-- run("config", U) -> executes config.lua, then calls its factory with U.
+-- run("util")      -> util.lua returns a table directly, returned as-is.
+local function run(name, ...)
+    local chunk, ferr = fetch(name)
+    if not chunk then return nil, ferr end
+    local ok, v = pcall(chunk)
+    if not ok then return nil, "exec: " .. tostring(v) end
+    if type(v) == "function" then
+        local args = table.pack(...)
+        local ok2, r = pcall(v, table.unpack(args, 1, args.n))
+        if not ok2 then return nil, "init: " .. tostring(r) end
+        return r
+    end
+    return v
+end
+
+local U, e1 = run("util");   assert(U,  "util: "   .. tostring(e1))
+local UI, e2 = run("ui");    assert(UI, "ui: "     .. tostring(e2))
+local C, e3 = run("config", U); assert(C, "config: " .. tostring(e3))
 
 local win = UI.new("BFHub")
 C.win = win
@@ -42,19 +63,14 @@ say("repo: " .. REPO .. "@" .. BRANCH)
 local ORDER = { "farm", "combat", "fruit", "esp", "teleport", "sea", "shop", "misc" }
 local mods, loaded = {}, {}
 for _, name in ipairs(ORDER) do
-    local f, ferr = fetch(name)
-    if not f then
-        say(("[x] %s - %s"):format(name, tostring(ferr)))
+    local mod, merr = run(name, U, UI, C, win)
+    if type(mod) == "table" then
+        mod.name = name
+        table.insert(mods, mod)     -- array: scheduler uses ipairs
+        table.insert(loaded, name)
+        say("[ok] " .. name)
     else
-        local ok, mod = pcall(f, U, UI, C, win)
-        if ok and type(mod) == "table" then
-            mod.name = name
-            table.insert(mods, mod)     -- array: scheduler uses ipairs
-            table.insert(loaded, name)
-            say("[ok] " .. name)
-        else
-            say(("[x] %s - runtime: %s"):format(name, tostring(mod)))
-        end
+        say(("[x] %s - %s"):format(name, tostring(merr or mod)))
     end
 end
 say(("done: %d/%d modules"):format(#loaded, #ORDER))
