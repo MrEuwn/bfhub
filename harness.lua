@@ -398,6 +398,8 @@ FILES["src/config.lua"] = [==[
 local C = {}
 
 C.values = {
+    JoinRetryDelay = 10,
+    JoinRetries = 50,
     jobid = "",
     MirageHop = false,
     MoonHop = false,
@@ -1679,8 +1681,71 @@ local MOON = {
 
 local state = { hops = 0, found = 0, nextHop = 0, nextPost = 0, lastMoon = nil, lastMirage = nil }
 
+-- pending join ---------------------------------------------------------------
+-- A teleport can fail: server full, Roblox rate limit, a race with a rejoin. So a
+-- requested jobId becomes a PENDING target that keeps being retried every
+-- JoinRetryDelay seconds until we are actually inside it. The target is written to
+-- a file, so after the teleport (and after an auto-execute re-run) the hub picks the
+-- same jobId back up and carries on retrying instead of forgetting it.
+local PENDING = "rps_pending_jobid.txt"
+
+local function fsWrite(text)
+    if type(writefile) ~= "function" then return false end
+    return (pcall(writefile, PENDING, text))
+end
+
+local function fsRead()
+    if type(readfile) ~= "function" then return nil end
+    local ok, txt = pcall(readfile, PENDING)
+    if ok and type(txt) == "string" and #txt > 30 then return (txt:gsub("%s", "")) end
+    return nil
+end
+
+local function fsClear()
+    if type(delfile) == "function" then pcall(delfile, PENDING) end
+    if type(writefile) == "function" then pcall(writefile, PENDING, "") end
+end
+
+function M.attempt()
+    local p = state.pending
+    if not p then return end
+    if game.JobId == p.id then return M.arrived() end
+    p.tries = p.tries + 1
+    p.next = os.clock() + (C.get("JoinRetryDelay") or 10)
+    U.notify("joining " .. p.id:sub(1, 8) .. "... (try " .. p.tries .. ")")
+    local TS = game:GetService("TeleportService")
+    local ok, err = pcall(function() TS:TeleportToPlaceInstance(game.PlaceId, p.id, U.LP) end)
+    if not ok then U.log("x", "join attempt " .. p.tries .. ": " .. tostring(err)) end
+    return ok
+end
+
+function M.arrived()
+    local p = state.pending
+    local id = p and p.id or "?"
+    U.notify("joined " .. id:sub(1, 8) .. " (try " .. tostring(p and p.tries or 0) .. ")")
+    U.log("i", "arrived: jobId " .. tostring(game.JobId) .. ", was waiting for " .. id)
+    state.pending = nil
+    state.found = state.found + 1
+    fsClear()
+end
+
+function M.stopJoin()
+    state.pending = nil
+    fsClear()
+    U.notify("stopped retrying")
+end
+
+function M.pendingId()
+    return state.pending and state.pending.id or nil
+end
+
 function M.init(_U, _C, _UI, _win, deps)
     U, C, D = _U, _C, deps and deps.D
+    local saved = fsRead()
+    if saved then
+        state.pending = { id = saved, tries = 0, next = 0 }
+        U.log("i", "resuming pending join: " .. saved)
+    end
 end
 
 -- detection ----------------------------------------------------------------
@@ -1757,16 +1822,10 @@ function M.pickServer()
 end
 
 function M.hopTo(jobId, label)
-    local TS = game:GetService("TeleportService")
     state.hops = state.hops + 1
     state.nextHop = os.clock() + (C.get("HopDelay") or 8)
-    U.notify("hop " .. state.hops .. " -> " .. tostring(label or "server"))
-    local ok, err = pcall(function() TS:TeleportToPlaceInstance(game.PlaceId, jobId, U.LP) end)
-    if not ok then
-        U.log("x", "teleport failed: " .. tostring(err))
-        U.notify("teleport failed - Roblox may be rate limiting")
-    end
-    return ok
+    -- route through the retrying join so a failed hop is not silently lost
+    return M.join(jobId, label)
 end
 
 function M.hop()
@@ -1813,10 +1872,14 @@ function M.hopShared()
     U.notify("all " .. #ids .. " shared jobIds used - list reset")
 end
 
-function M.join(jobId)
-    if not jobId or #jobId < 30 then return U.notify("that is not a jobId") end
+function M.join(jobId, label)
+    jobId = tostring(jobId or ""):gsub("%s", "")
+    if #jobId < 30 then return U.notify("that is not a jobId") end
+    state.pending = { id = jobId, tries = 0, next = 0, label = label }
     used[jobId] = true
-    return M.hopTo(jobId, "manual")
+    fsWrite(jobId)
+    U.log("i", "join queued: " .. jobId)
+    return M.attempt()
 end
 
 function M.usedCount()
@@ -1849,6 +1912,23 @@ end
 
 -- tick ---------------------------------------------------------------------
 function M.tick(_U, _C)
+    -- a queued join outranks everything else and runs even with the hop toggles off
+    local p = state.pending
+    if p then
+        if game.JobId == p.id then
+            M.arrived()
+        else
+            local max = C.get("JoinRetries") or 50
+            if p.tries >= max then
+                U.notify("gave up on " .. p.id:sub(1, 8) .. " after " .. max .. " tries")
+                M.stopJoin()
+            elseif os.clock() >= (p.next or 0) then
+                M.attempt()
+            end
+        end
+        return
+    end
+
     local phase, mirage, full = M.status()
     state.lastMoon, state.lastMirage = phase, mirage
 
@@ -1884,6 +1964,7 @@ end
 function M.reset()
     state.hops, state.found, state.nextHop = 0, 0, 0
     used = {}
+    -- pending join deliberately survives a counter reset
 end
 
 function M.stats() return state.hops, state.found, state.lastMoon, state.lastMirage end
@@ -2388,6 +2469,11 @@ function M.init(_U, _C, _UI, _w, deps)
             Color3.fromRGB(150, 155, 170))
         win:textbox(c, "jobId", "jobid", "paste here")
         win:button(c, "Join That jobId", function() M.joinJobId() end)
+        win:label(c, "if the join does not land it keeps retrying - and resumes after the rejoin",
+            Color3.fromRGB(150, 155, 170))
+        win:slider(c, "Retry Every (s)", "JoinRetryDelay", 5, 60, 5)
+        win:slider(c, "Give Up After (tries)", "JoinRetries", 5, 200, 5)
+        win:button(c, "Stop Retrying", function() M.stopJoin() end)
         win:textbox(c, "URL (raw text with jobIds)", "SharedUrl", "https://raw.githubusercontent.com/...")
         win:button(c, "Join Next Unused From URL", function() M.joinShared() end)
         win:label(c, "the list cycles: each press takes a new one, resets when all are used",
@@ -2398,8 +2484,10 @@ function M.init(_U, _C, _UI, _w, deps)
         task.spawn(function()
             while win.gui.Parent do
                 local hops, found, phase, mirage = M.stats()
-                info.Text = string.format("moon: %s\nmirage: %s\nhops: %d   found: %d",
-                    tostring(phase), tostring(mirage), hops, found)
+                local pend = M.pendingId()
+                info.Text = string.format("moon: %s\nmirage: %s\nhops: %d   found: %d\n%s",
+                    tostring(phase), tostring(mirage), hops, found,
+                    pend and ("joining " .. pend:sub(1, 8) .. "...") or "idle")
                 task.wait(1)
             end
         end)
@@ -2487,6 +2575,8 @@ local moon = nil
 function M.bindMoon(m) moon = m end
 function M.joinJobId() if moon then moon.join(C.get("jobid")) end end
 function M.joinShared() if moon then moon.hopShared() end end
+function M.stopJoin() if moon then moon.stopJoin() end end
+function M.pendingId() return moon and moon.pendingId() or nil end
 
 function M.teleportIsland()
     local w = workspace:FindFirstChild("_WorldOrigin")
@@ -2590,6 +2680,12 @@ require = function() return Any("module") end
 identifyexecutor = function() return "harness" end
 request, setclipboard, sethiddenproperty = function() end, function() end, function() end
 debug = { getupvalues = function() return {} end, traceback = function() return "" end }
+
+-- stub the executor filesystem so the pending-join save/resume is exercised
+local FILESYSTEM = {}
+writefile = function(p, t) FILESYSTEM[p] = t end
+readfile = function(p) return FILESYSTEM[p] end
+delfile = function(p) FILESYSTEM[p] = nil end
 
 local loaded, okCount, failCount = {}, 0, 0
 for _, f in ipairs({ "src/util.lua", "src/config.lua", "src/data.lua", "src/ui.lua",
@@ -2721,15 +2817,38 @@ local ok5 = pcall(moon.tick, U, C)
 assert(ok5, "moon.tick threw with hops on")
 C.set("MirageHop", false)
 local moon2 = loaded["src/moon.lua"]
-for _, fn in ipairs({ "join", "hopShared", "shared", "usedCount", "hop", "reset" }) do
+for _, fn in ipairs({ "join", "attempt", "arrived", "stopJoin", "pendingId", "hopShared", "usedCount", "reset" }) do
     assert(type(moon2[fn]) == "function", "moon." .. fn .. " missing")
 end
-local okJ = pcall(moon2.join, "not-a-jobid")
-assert(okJ, "join threw on a bad id")
-assert(pcall(moon2.usedCount), "usedCount threw")
-C.set("SharedUrl", "")
-assert(pcall(moon2.hopShared), "hopShared threw with no url")
-print("[ok] moon: join / shared-list helpers present and safe")
+
+-- a queued join must persist to disk and survive a re-init (that is the auto-execute case)
+C.set("JoinRetries", 3) C.set("JoinRetryDelay", 0)
+local okJ = pcall(moon2.join, "11111111-2222-3333-4444-555555555555")
+assert(okJ, "join threw")
+assert(moon2.pendingId() == "11111111-2222-3333-4444-555555555555", "join did not queue a pending id")
+assert(FILESYSTEM["rps_pending_jobid.txt"] == "11111111-2222-3333-4444-555555555555", "pending id was not written to disk")
+
+-- simulate the rejoin: a fresh module instance must pick the target back up
+local moon3 = loadstring(FILES["src/moon.lua"], "moon3")()
+moon3.init(U, C)
+assert(moon3.pendingId() == "11111111-2222-3333-4444-555555555555", "resume after rejoin failed")
+
+-- the retry loop must keep firing while we are not in that server
+for i = 1, 3 do moon3.tick(U, C) end
+assert(moon3.pendingId() ~= nil, "retry loop dropped the target before the limit")
+
+-- and must give up at the configured limit, clearing the file
+moon3.tick(U, C)
+assert(moon3.pendingId() == nil, "retry limit did not stop the loop")
+assert(FILESYSTEM["rps_pending_jobid.txt"] == "", "pending file not cleared after giving up")
+
+-- a bad id must not queue anything (clear the first queue, moon2 still holds it)
+moon2.stopJoin()
+assert(moon2.pendingId() == nil, "stopJoin did not clear the target")
+local okBad = pcall(moon2.join, "nope")
+assert(okBad, "join threw on a short id")
+assert(moon2.pendingId() == nil, "a short id queued a join")
+print("[ok] join retry: queues, persists, resumes after rejoin, stops at the limit")
 
 print("[ok] moon: phase=" .. phase .. " mirage=" .. tostring(isMirage))
 

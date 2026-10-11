@@ -4,6 +4,8 @@
 local C = {}
 
 C.values = {
+    JoinRetryDelay = 10,
+    JoinRetries = 50,
     jobid = "",
     MirageHop = false,
     MoonHop = false,

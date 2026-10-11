@@ -234,6 +234,11 @@ function M.init(_U, _C, _UI, _w, deps)
             Color3.fromRGB(150, 155, 170))
         win:textbox(c, "jobId", "jobid", "paste here")
         win:button(c, "Join That jobId", function() M.joinJobId() end)
+        win:label(c, "if the join does not land it keeps retrying - and resumes after the rejoin",
+            Color3.fromRGB(150, 155, 170))
+        win:slider(c, "Retry Every (s)", "JoinRetryDelay", 5, 60, 5)
+        win:slider(c, "Give Up After (tries)", "JoinRetries", 5, 200, 5)
+        win:button(c, "Stop Retrying", function() M.stopJoin() end)
         win:textbox(c, "URL (raw text with jobIds)", "SharedUrl", "https://raw.githubusercontent.com/...")
         win:button(c, "Join Next Unused From URL", function() M.joinShared() end)
         win:label(c, "the list cycles: each press takes a new one, resets when all are used",
@@ -244,8 +249,10 @@ function M.init(_U, _C, _UI, _w, deps)
         task.spawn(function()
             while win.gui.Parent do
                 local hops, found, phase, mirage = M.stats()
-                info.Text = string.format("moon: %s\nmirage: %s\nhops: %d   found: %d",
-                    tostring(phase), tostring(mirage), hops, found)
+                local pend = M.pendingId()
+                info.Text = string.format("moon: %s\nmirage: %s\nhops: %d   found: %d\n%s",
+                    tostring(phase), tostring(mirage), hops, found,
+                    pend and ("joining " .. pend:sub(1, 8) .. "...") or "idle")
                 task.wait(1)
             end
         end)
@@ -333,6 +340,8 @@ local moon = nil
 function M.bindMoon(m) moon = m end
 function M.joinJobId() if moon then moon.join(C.get("jobid")) end end
 function M.joinShared() if moon then moon.hopShared() end end
+function M.stopJoin() if moon then moon.stopJoin() end end
+function M.pendingId() return moon and moon.pendingId() or nil end
 
 function M.teleportIsland()
     local w = workspace:FindFirstChild("_WorldOrigin")

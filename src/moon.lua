@@ -35,8 +35,71 @@ local MOON = {
 
 local state = { hops = 0, found = 0, nextHop = 0, nextPost = 0, lastMoon = nil, lastMirage = nil }
 
+-- pending join ---------------------------------------------------------------
+-- A teleport can fail: server full, Roblox rate limit, a race with a rejoin. So a
+-- requested jobId becomes a PENDING target that keeps being retried every
+-- JoinRetryDelay seconds until we are actually inside it. The target is written to
+-- a file, so after the teleport (and after an auto-execute re-run) the hub picks the
+-- same jobId back up and carries on retrying instead of forgetting it.
+local PENDING = "rps_pending_jobid.txt"
+
+local function fsWrite(text)
+    if type(writefile) ~= "function" then return false end
+    return (pcall(writefile, PENDING, text))
+end
+
+local function fsRead()
+    if type(readfile) ~= "function" then return nil end
+    local ok, txt = pcall(readfile, PENDING)
+    if ok and type(txt) == "string" and #txt > 30 then return (txt:gsub("%s", "")) end
+    return nil
+end
+
+local function fsClear()
+    if type(delfile) == "function" then pcall(delfile, PENDING) end
+    if type(writefile) == "function" then pcall(writefile, PENDING, "") end
+end
+
+function M.attempt()
+    local p = state.pending
+    if not p then return end
+    if game.JobId == p.id then return M.arrived() end
+    p.tries = p.tries + 1
+    p.next = os.clock() + (C.get("JoinRetryDelay") or 10)
+    U.notify("joining " .. p.id:sub(1, 8) .. "... (try " .. p.tries .. ")")
+    local TS = game:GetService("TeleportService")
+    local ok, err = pcall(function() TS:TeleportToPlaceInstance(game.PlaceId, p.id, U.LP) end)
+    if not ok then U.log("x", "join attempt " .. p.tries .. ": " .. tostring(err)) end
+    return ok
+end
+
+function M.arrived()
+    local p = state.pending
+    local id = p and p.id or "?"
+    U.notify("joined " .. id:sub(1, 8) .. " (try " .. tostring(p and p.tries or 0) .. ")")
+    U.log("i", "arrived: jobId " .. tostring(game.JobId) .. ", was waiting for " .. id)
+    state.pending = nil
+    state.found = state.found + 1
+    fsClear()
+end
+
+function M.stopJoin()
+    state.pending = nil
+    fsClear()
+    U.notify("stopped retrying")
+end
+
+function M.pendingId()
+    return state.pending and state.pending.id or nil
+end
+
 function M.init(_U, _C, _UI, _win, deps)
     U, C, D = _U, _C, deps and deps.D
+    local saved = fsRead()
+    if saved then
+        state.pending = { id = saved, tries = 0, next = 0 }
+        U.log("i", "resuming pending join: " .. saved)
+    end
 end
 
 -- detection ----------------------------------------------------------------
@@ -113,16 +176,10 @@ function M.pickServer()
 end
 
 function M.hopTo(jobId, label)
-    local TS = game:GetService("TeleportService")
     state.hops = state.hops + 1
     state.nextHop = os.clock() + (C.get("HopDelay") or 8)
-    U.notify("hop " .. state.hops .. " -> " .. tostring(label or "server"))
-    local ok, err = pcall(function() TS:TeleportToPlaceInstance(game.PlaceId, jobId, U.LP) end)
-    if not ok then
-        U.log("x", "teleport failed: " .. tostring(err))
-        U.notify("teleport failed - Roblox may be rate limiting")
-    end
-    return ok
+    -- route through the retrying join so a failed hop is not silently lost
+    return M.join(jobId, label)
 end
 
 function M.hop()
@@ -169,10 +226,14 @@ function M.hopShared()
     U.notify("all " .. #ids .. " shared jobIds used - list reset")
 end
 
-function M.join(jobId)
-    if not jobId or #jobId < 30 then return U.notify("that is not a jobId") end
+function M.join(jobId, label)
+    jobId = tostring(jobId or ""):gsub("%s", "")
+    if #jobId < 30 then return U.notify("that is not a jobId") end
+    state.pending = { id = jobId, tries = 0, next = 0, label = label }
     used[jobId] = true
-    return M.hopTo(jobId, "manual")
+    fsWrite(jobId)
+    U.log("i", "join queued: " .. jobId)
+    return M.attempt()
 end
 
 function M.usedCount()
@@ -205,6 +266,23 @@ end
 
 -- tick ---------------------------------------------------------------------
 function M.tick(_U, _C)
+    -- a queued join outranks everything else and runs even with the hop toggles off
+    local p = state.pending
+    if p then
+        if game.JobId == p.id then
+            M.arrived()
+        else
+            local max = C.get("JoinRetries") or 50
+            if p.tries >= max then
+                U.notify("gave up on " .. p.id:sub(1, 8) .. " after " .. max .. " tries")
+                M.stopJoin()
+            elseif os.clock() >= (p.next or 0) then
+                M.attempt()
+            end
+        end
+        return
+    end
+
     local phase, mirage, full = M.status()
     state.lastMoon, state.lastMirage = phase, mirage
 
@@ -240,6 +318,7 @@ end
 function M.reset()
     state.hops, state.found, state.nextHop = 0, 0, 0
     used = {}
+    -- pending join deliberately survives a counter reset
 end
 
 function M.stats() return state.hops, state.found, state.lastMoon, state.lastMirage end

@@ -92,8 +92,14 @@ What this hub does:
    set. Empty servers are preferred (a fresh server has a fresh moon clock), then the
    least full one. The counter shows how many hops it cost, so the real hit rate is
    visible rather than promised.
-3. **Join by jobId**: paste a jobId someone posted and the hub teleports straight to it.
-   No token, no bot, nothing to configure beyond the paste.
+3. **Join by jobId, with a retry loop**: paste a jobId someone posted and the hub queues
+   it as a pending target. A teleport can fail (server full, Roblox rate limit, a race
+   with the rejoin), so it re-attempts every `Retry Every` seconds up to `Give Up After`
+   tries, and stops the moment `game.JobId` equals the target.
+   The target is also written to `rps_pending_jobid.txt`, so after the teleport - and
+   after an **auto-execute re-run** - the hub reads it back and keeps retrying the same
+   server instead of forgetting it. `Stop Retrying` clears it; `Reset Counter` does not
+   touch it.
 4. **Shared jobId list**: a URL of raw text containing jobIds (a GitHub raw file or gist
    you keep). `Join Next Unused From URL` takes the next one it has not used yet and
    cycles, so repeated presses walk the list instead of hammering the same server.
