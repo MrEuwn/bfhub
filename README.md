@@ -1,4 +1,4 @@
-# BFHub
+# Raf's Personal Script
 
 Blox Fruits script hub. No UI library (raw `Instance.new` GUI) -> smallest footprint on mobile executors like Delta.
 
@@ -34,6 +34,10 @@ Floating **STOP TWEEN** button (right edge) disables smooth travel instantly.
 3. **NoClip forced while moving** - tween/flight never clips a wall.
 4. **Auto hit** - equips the chosen weapon category, activates it and clicks.
 5. **Wait + repeat** - when the mobs are dead it waits for respawn and keeps hitting until the quest counter is satisfied (quests complete automatically server-side; there is no CompleteQuest remote).
+
+## UI
+
+Hand-built from `Instance.new` (no UI library) so it stays tiny on mobile. Calm dark palette, soft periwinkle accent, rounded cards, scrollable tab rail + pages. Floating **R** button reopens it after minimizing.
 
 ## Layout
 

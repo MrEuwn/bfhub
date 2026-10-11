@@ -18,11 +18,15 @@ return function(U, UI, C, win)
         return ("%02d:%02d"):format(m, ss)
     end
 
+    local fruitAt, fruitVal = 0, false
     local function fruitSpawned()
-        for _, d in ipairs(workspace:GetDescendants()) do
-            if d:IsA("Tool") and string.find(string.lower(d.Name), "fruit", 1, true) then return true end
+        if os.clock() - fruitAt < 3 then return fruitVal end
+        fruitAt = os.clock()
+        fruitVal = false
+        for _, d in ipairs(workspace:GetChildren()) do
+            if d:IsA("Tool") and string.find(string.lower(d.Name), "fruit", 1, true) then fruitVal = true; break end
         end
-        return false
+        return fruitVal
     end
 
     function M.tick()

@@ -4,13 +4,19 @@ return function(U, UI, C, win)
     local sniper, store, mastery, notifier
     local seen = {}
 
+    -- cached: a full workspace descendant scan is expensive on mobile, so the
+    -- tool list is refreshed at most twice a second.
+    local cache, cacheAt = {}, 0
     local function fruitTools()
+        if os.clock() - cacheAt < 0.5 then return cache end
+        cacheAt = os.clock()
         local out = {}
         for _, d in ipairs(workspace:GetDescendants()) do
             if d:IsA("Tool") and string.find(string.lower(d.Name), "fruit", 1, true) then
                 table.insert(out, d)
             end
         end
+        cache = out
         return out
     end
 

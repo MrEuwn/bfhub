@@ -49,7 +49,7 @@ local C, e3 = run("config", U); assert(C, "config: " .. tostring(e3))
 local quests, eq = run("quests")
 C.quests = (type(quests) == "table") and quests or {}
 
-local win = UI.new("BFHub")
+local win = UI.new("Raf's Personal Script")
 C.win = win
 
 -- Home tab reports exactly what loaded and any error, so a broken module is
@@ -59,7 +59,7 @@ local st = home:section("Load Status")
 local info = st:paragraph("loading modules...")
 local lines = {}
 local function say(s) table.insert(lines, s); info.Text = table.concat(lines, "\n") end
-say("BFHub - Sea " .. tostring(U.currentSea()) .. "  Lv." .. tostring(U.level()))
+say("Raf's Personal Script - Sea " .. tostring(U.currentSea()) .. "  Lv." .. tostring(U.level()))
 say("quests: " .. tostring(#C.quests) .. " rows")
 say("repo: " .. REPO .. "@" .. BRANCH)
 
@@ -90,7 +90,7 @@ end)
 -- STOP TWEEN kill-switch (HoHo-style): one tap disables smooth travel.
 do
     local pg = U.player:WaitForChild("PlayerGui")
-    local sg = pg:FindFirstChild("BFHub")
+    local sg = pg:FindFirstChild("RPS")
     if sg then
         local b = Instance.new("TextButton")
         b.Size = UDim2.fromOffset(96, 34); b.Position = UDim2.new(1, -104, 0.5, 40)
@@ -106,4 +106,4 @@ do
     end
 end
 
-U.notify("BFHub loaded - " .. #loaded .. "/" .. #ORDER .. " modules")
+U.notify("Raf's Personal Script loaded - " .. #loaded .. "/" .. #ORDER .. " modules")

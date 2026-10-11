@@ -1,6 +1,6 @@
 -- Flat runtime state store shared by all modules. Deliberately simple.
 return function(U)
-    local store = { tickRate = 0.1 }
+    local store = { tickRate = 0.15 }
     local C = {}
 
     function C.get(k) return store[k] end

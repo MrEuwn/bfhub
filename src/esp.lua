@@ -9,10 +9,19 @@ return function(U, UI, C, win)
         if e then e:Destroy() end
     end
 
+    -- Reuse an existing tag instead of destroying/recreating it every tick
+    -- (destroying+cloning BillboardGuis each frame is the main mobile lag source).
     local function tag(inst, text, color, id)
         id = id or "BFHubESP"
         local old = inst:FindFirstChild(id)
-        if old then old:Destroy() end
+        if old then
+            local lbl = old:FindFirstChildWhichIsA("TextLabel")
+            if lbl then
+                if lbl.Text ~= text then lbl.Text = text end
+                if lbl.TextColor3 ~= color then lbl.TextColor3 = color end
+            end
+            return old
+        end
         local bb = Instance.new("BillboardGui")
         bb.Name = id; bb.Size = UDim2.fromOffset(120, 28); bb.AlwaysOnTop = true
         bb.StudsOffset = Vector3.new(0, 3, 0); bb.Parent = inst
@@ -36,6 +45,16 @@ return function(U, UI, C, win)
     s:toggle("Enemy ESP", false, function(on) opts.enemy = on end)
 
     function M.tick()
+        if not opts.enemy then
+            for _, m in ipairs(U.mobs(nil)) do
+                local e = m:FindFirstChild("BFHubEnemy"); if e then e:Destroy() end
+            end
+        end
+        if not opts.fruit then
+            for _, d in ipairs(workspace:GetDescendants()) do
+                if d:IsA("Tool") then local e = d:FindFirstChild("BFHubFruit"); if e then e:Destroy() end end
+            end
+        end
         if opts.enemy then
             for _, m in ipairs(U.mobs(nil)) do
                 local h = m:FindFirstChildOfClass("Humanoid")
