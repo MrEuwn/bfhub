@@ -9,6 +9,9 @@ return function(U, UI, C, win)
     local chest, berry, material = false, false, false
     local lastQuest = 0
 
+    -- "Bandit [Lv. 5]" -> "Bandit" (Enemies names carry a level tag)
+    local function baseName(n) return (n:gsub("%s*%[Lv%.%s*%d+%]$", "")) end
+
     local function isMoving()
         local h = U.hum()
         return h and h.MoveDirection.Magnitude > 0.1
@@ -19,21 +22,24 @@ return function(U, UI, C, win)
         else U.tp(pos, yOff or 0) end
     end
 
-    -- bring mob: pull the mob onto the player so it stays in range while you hover
-    local function bringMob(mob)
-        local r = U.root(); if not r or not mob then return end
-        local hrp = mob:FindFirstChild("HumanoidRootPart")
-        if hrp then hrp.CFrame = r.CFrame * CFrame.new(0, 0, -3) end
+    -- bring mob: pull EVERY mob whose type matches the one being farmed onto
+    -- the player, so the whole cluster stays in M1 range while you hover.
+    local function bringSameType(name)
+        local r = U.root(); if not r or not name then return end
+        for _, m in ipairs(U.mobs(name)) do
+            local hrp = m:FindFirstChild("HumanoidRootPart")
+            if hrp then hrp.CFrame = r.CFrame * CFrame.new(0, 0, -3) end
+        end
     end
 
-    local function kill(mob, speed)
+    -- Farm loop: fly to the target mob, (optionally) gather all same-type mobs
+    -- onto us, then attack. Bring makes travel unnecessary after the first pass.
+    local function kill(mob, speed, name)
         local r = U.root(); if not r or not mob then return end
         local h = mob:FindFirstChildOfClass("Humanoid"); if not h or h.Health <= 0 then return end
         local hrp = mob:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            if bring then bringMob(mob) else r.CFrame = CFrame.new(hrp.Position + Vector3.new(0, 12, 0)) end
-            U.touch(r, hrp)
-        end
+        if hrp then r.CFrame = CFrame.new(hrp.Position + Vector3.new(0, 12, 0)) end  -- auto to mob
+        if bring then bringSameType(name) end
         U.attack()
         task.wait(speed or 0.15)
     end
@@ -65,7 +71,7 @@ return function(U, UI, C, win)
             -- quest active: kill its mobs; kill() attacks until the mob dies and
             -- the quest counter advances, completing automatically.
             local mob = U.nearestMob(mon)
-            if mob then kill(mob, C.get("farmSpeed") or 0.15) end
+            if mob then kill(mob, C.get("farmSpeed") or 0.15, mon) end
         end
     end
 
@@ -82,7 +88,7 @@ return function(U, UI, C, win)
         C.set("farmSpeed", tonumber(string.match(v, "%d+%.%d+")) or 0.15)
     end)
     s:toggle("Use Tween (smooth, slower)", false, function(on) C.set("useTween", on) end)
-    s:toggle("Bring Mob", false, function(on) bring = on end)
+    s:toggle("Bring Mob (all same type)", false, function(on) bring = on end)
     s:toggle("Auto Farm Nearest", false, function(on) mode = on and "nearest" or nil end)
 
     -- Selected mob: live list from workspace.Enemies, tap to cycle.
@@ -169,10 +175,10 @@ return function(U, UI, C, win)
         if questFarm then
             if os.clock() - lastQuest > 0.4 then lastQuest = os.clock(); runQuest() end
         elseif mode == "nearest" then
-            local m = U.nearestMob(nil); if m then kill(m, C.get("farmSpeed")) end
+            local m = U.nearestMob(nil); if m then kill(m, C.get("farmSpeed"), baseName(m.Name)) end
         elseif mode == "selected" then
             local m = U.nearestMob(C.get("farmMobName") or selMon)
-            if m then kill(m, C.get("farmSpeed")) end
+            if m then kill(m, C.get("farmSpeed"), C.get("farmMobName") or selMon) end
         end
 
         if chest then goTouch("chest") end
