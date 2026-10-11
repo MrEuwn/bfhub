@@ -398,11 +398,7 @@ FILES["src/config.lua"] = [==[
 local C = {}
 
 C.values = {
-    DcToken = "",
-    DcChannel = "",
-    DcFilter = "",
-    DcAuto = false,
-    DcPoll = 10,
+    jobid = "",
     MirageHop = false,
     MoonHop = false,
     HopMax = 40,
@@ -1788,15 +1784,45 @@ local function jobIdsFrom(text)
     return out
 end
 
-function M.fetchShared()
+-- a shared list of jobIds (raw text URL: github raw, gist, pastebin, discord export).
+-- Cycles through them and skips the ones already used, so one press = one new server.
+local used = {}
+
+function M.shared()
     local url = C.get("SharedUrl")
-    if not url or url == "" then return U.notify("set a shared jobId url first") end
+    if not url or url == "" then return nil, "set a jobId url first" end
     local ok, body = pcall(game.HttpGet, game, url)
-    if not ok or type(body) ~= "string" then return U.notify("fetch failed") end
-    local ids = jobIdsFrom(body)
-    U.log("i", "shared url -> " .. #ids .. " jobId(s)")
+    if not ok or type(body) ~= "string" then return nil, "fetch failed" end
+    local out = {}
+    for id in body:gmatch("[%w]+%-%w+%-%w+%-%w+%-[%w]+") do table.insert(out, id) end
+    return out
+end
+
+function M.hopShared()
+    local ids, err = M.shared()
+    if not ids then return U.notify("shared: " .. tostring(err)) end
     if #ids == 0 then return U.notify("no jobId in that url") end
-    return M.hopTo(ids[1], "shared jobId")
+    for _, id in ipairs(ids) do
+        if not used[id] and id ~= game.JobId then
+            used[id] = true
+            U.log("i", string.format("shared: hopping to %s (%d/%d)", id, #ids - (#ids - 1), #ids))
+            return M.hopTo(id, "shared")
+        end
+    end
+    used = {}
+    U.notify("all " .. #ids .. " shared jobIds used - list reset")
+end
+
+function M.join(jobId)
+    if not jobId or #jobId < 30 then return U.notify("that is not a jobId") end
+    used[jobId] = true
+    return M.hopTo(jobId, "manual")
+end
+
+function M.usedCount()
+    local n = 0
+    for _ in pairs(used) do n = n + 1 end
+    return n
 end
 
 -- post our find so other instances / people can jump to it
@@ -1857,172 +1883,10 @@ end
 
 function M.reset()
     state.hops, state.found, state.nextHop = 0, 0, 0
+    used = {}
 end
 
 function M.stats() return state.hops, state.found, state.lastMoon, state.lastMirage end
-
-return M
-]==]
-FILES["src/discord.lua"] = [==[
---[[ discord.lua - read jobIds out of a Discord channel (the "RODISCORD HOP FARM" idea).
-
-     How it works: the REST endpoint returns recent messages as JSON, so the jobId
-     someone posted is just a UUID inside `content`.
-         GET https://discord.com/api/v10/channels/<channel_id>/messages?limit=100
-         Authorization: Bot <token>
-     A bot needs VIEW_CHANNEL + READ_MESSAGE_HISTORY in that channel. Message Content
-     Intent is only required for the gateway/websocket, not for REST.
-
-     Why this can work from an executor at all: requests go out from the DEVICE's IP.
-     The 403 Cloudflare block everyone hits is HttpService from Roblox's own game
-     servers, which Discord blocks.
-
-     The token is typed into the UI at runtime and lives only in the config table -
-     it is never written into this file or the repo. Treat it as a password: a bot
-     token can read every channel that bot can see. Do not paste it into a public
-     repo, and rotate it if it leaks. Do not use a user token (self-bot): that breaks
-     Discord's ToS and gets the account banned. ]]
-
-local M = {}
-local U, C
-
-local API = "https://discord.com/api/v10"
-local JOBID = "%x%x%x%x%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x"
-local state = { lastId = nil, nextPoll = 0, hits = 0, errors = 0, lastInfo = "" }
-
-function M.init(_U, _C)
-    U, C = _U, _C
-end
-
-local function token()
-    local t = C.get("DcToken")
-    if not t or t == "" then return nil end
-    return t
-end
-
--- one REST call; returns (ok, decodedTableOrErrorText, statusCode)
-local function api(path)
-    local t = token()
-    if not t then return false, "no token set", 0 end
-    local url = API .. path
-    local body, status
-    local ok = pcall(function()
-        local res = request({
-            Url = url,
-            Method = "GET",
-            Headers = {
-                ["Authorization"] = "Bot " .. t,
-                ["Content-Type"] = "application/json",
-                ["User-Agent"] = "DiscordBot (https://github.com/MrEuwn/bfhub, 1.0)",
-            },
-        })
-        if type(res) == "table" then
-            body, status = res.Body, res.StatusCode
-        else
-            body = res
-        end
-    end)
-    if not ok or type(body) ~= "string" then return false, "request failed", status or 0 end
-    if status == 401 then return false, "bad token (401)", status end
-    if status == 403 then return false, "bot lacks View Channel / Read Message History (403)", status end
-    if status == 404 then return false, "channel not found (404)", status end
-    if status == 429 then return false, "rate limited (429)", status end
-    local ok2, data = pcall(function()
-        return game:GetService("HttpService"):JSONDecode(body)
-    end)
-    if not ok2 then return false, "bad json", status or 0 end
-    return true, data, status or 200
-end
-
-function M.me()
-    local ok, data = api("/users/@me")
-    if not ok then return U.notify("discord: " .. tostring(data)) end
-    U.notify("bot: " .. tostring(data.username))
-    U.log("i", "discord bot ok: " .. tostring(data.username) .. " (" .. tostring(data.id) .. ")")
-    return data
-end
-
--- newest message that contains a jobId and (if set) every word of the filter
-function M.messages(limit)
-    local ch = C.get("DcChannel")
-    if not ch or ch == "" then return nil, "no channel id set" end
-    return api("/channels/" .. tostring(ch) .. "/messages?limit=" .. tostring(limit or 50))
-end
-
-local function matches(content)
-    local filter = C.get("DcFilter")
-    if not filter or filter == "" then return true end
-    content = string.lower(content)
-    for word in string.gmatch(string.lower(filter), "[^%s,]+") do
-        if not string.find(content, word, 1, true) then return false end
-    end
-    return true
-end
-
-function M.find()
-    local ok, data, status = M.messages(50)
-    if not ok then return nil, data end
-    local out = {}
-    for _, msg in ipairs(data or {}) do
-        local content = tostring(msg.content or "")
-        local id = content:match(JOBID)
-        if id and matches(content) then
-            table.insert(out, { id = id, msgId = tostring(msg.id), at = tostring(msg.timestamp or ""), text = content })
-        end
-    end
-    return out, nil
-end
-
--- a quick look: how many jobIds, and the newest one
-function M.test()
-    local list, err = M.find()
-    if not list then return U.notify("discord: " .. tostring(err)) end
-    state.lastInfo = #list .. " jobId(s) in the last 50 messages"
-    U.notify(state.lastInfo)
-    U.log("i", "discord: " .. state.lastInfo)
-    for i = 1, math.min(#list, 3) do
-        U.log("i", string.format("  %s  %s  %s", list[i].id, list[i].at, list[i].text:sub(1, 60)))
-    end
-    return list
-end
-
-function M.hopNewest()
-    local list, err = M.find()
-    if not list then return U.notify("discord: " .. tostring(err)) end
-    if #list == 0 then return U.notify("no jobId in that channel (filter: " .. tostring(C.get("DcFilter")) .. ")") end
-    local pick = list[1]
-    state.lastId = pick.msgId
-    state.hits = state.hits + 1
-    U.notify("discord jobId: " .. pick.id:sub(1, 8) .. "...")
-    local TS = game:GetService("TeleportService")
-    pcall(function() TS:TeleportToPlaceInstance(game.PlaceId, pick.id, U.LP) end)
-end
-
--- auto: poll the channel, hop to a jobId we have not used yet
-function M.tick()
-    if not C.get("DcAuto") then return end
-    if not token() then return end
-    if os.clock() < state.nextPoll then return end
-    state.nextPoll = os.clock() + (C.get("DcPoll") or 10)
-    if not U.alive() then return end
-    local list, err = M.find()
-    if not list then
-        state.errors = state.errors + 1
-        if state.errors <= 3 then U.log("x", "discord poll: " .. tostring(err)) end
-        return
-    end
-    if #list == 0 then return end
-    local pick = list[1]
-    if pick.msgId == state.lastId then return end      -- already used
-    state.lastId = pick.msgId
-    state.hits = state.hits + 1
-    U.notify("discord hop " .. state.hits .. ": " .. pick.id:sub(1, 8))
-    local TS = game:GetService("TeleportService")
-    pcall(function() TS:TeleportToPlaceInstance(game.PlaceId, pick.id, U.LP) end)
-end
-
-function M.stats() return state.hits, state.errors, state.lastInfo end
-function M.reset() state.lastId, state.hits, state.errors, state.nextPoll = nil, 0, 0, 0 end
 
 return M
 ]==]
@@ -2300,7 +2164,7 @@ local U, C, UI, win, D
 function M.init(_U, _C, _UI, _w, deps)
     U, C, UI, win = _U, _C, _UI, _w
     D = deps and deps.D
-    if deps and deps.mods then M.bindDiscord(deps.mods.discord) end
+    if deps and deps.mods then M.bindMoon(deps.mods.moon) end
 
     -- FARM ------------------------------------------------------------------
     win:tab("Farm", function(page)
@@ -2519,23 +2383,16 @@ function M.init(_U, _C, _UI, _w, deps)
         win:button(c, "Hop Once Now", function() M.hop() end)
         win:button(c, "Reset Counter", function() M.reset() U.notify("counter reset") end)
 
-        c = win:card(page, "Discord Channel")
-        win:label(c, "token stays in this session only - it is never written to the repo. use a BOT token, never a user token",
-            Color3.fromRGB(220, 170, 120))
-        win:textbox(c, "Bot Token", "DcToken", "paste at runtime")
-        win:textbox(c, "Channel ID", "DcChannel", "18-19 digit id")
-        win:textbox(c, "Filter (words in the message)", "DcFilter", "mirage")
-        win:button(c, "Test Token", function() M.dcTest() end)
-        win:button(c, "Show JobIds Found", function() M.dcList() end)
-        win:button(c, "Hop To Newest jobId", function() M.dcHop() end)
-        win:toggle(c, "Auto Hop To New jobIds", "DcAuto")
-        win:slider(c, "Poll Every (s)", "DcPoll", 5, 60, 5)
-
-        c = win:card(page, "Shared jobIds")
-        win:label(c, "same idea as the hubs' moon/mirage discord channels: hop to a jobId someone posted",
+        c = win:card(page, "Join By jobId")
+        win:label(c, "paste a jobId someone posted, or point at a raw text list of them",
             Color3.fromRGB(150, 155, 170))
+        win:textbox(c, "jobId", "jobid", "paste here")
+        win:button(c, "Join That jobId", function() M.joinJobId() end)
         win:textbox(c, "URL (raw text with jobIds)", "SharedUrl", "https://raw.githubusercontent.com/...")
-        win:button(c, "Hop To First Shared jobId", function() M.fetchShared() end)
+        win:button(c, "Join Next Unused From URL", function() M.joinShared() end)
+        win:label(c, "the list cycles: each press takes a new one, resets when all are used",
+            Color3.fromRGB(150, 155, 170))
+
         win:button(c, "Post My jobId To Webhook", "only when a moon/mirage is up", function() M.post() end)
 
         task.spawn(function()
@@ -2625,12 +2482,11 @@ function M.redeemCodes()
     U.notify(n .. " codes sent")
 end
 
--- discord passthroughs (kept here so the UI does not need the module handle)
-local dc = nil
-function M.bindDiscord(m) dc = m end
-function M.dcTest() if dc then dc.me() end end
-function M.dcList() if dc then dc.test() end end
-function M.dcHop() if dc then dc.hopNewest() end end
+-- server-tab passthroughs (the UI does not hold the module handle)
+local moon = nil
+function M.bindMoon(m) moon = m end
+function M.joinJobId() if moon then moon.join(C.get("jobid")) end end
+function M.joinShared() if moon then moon.hopShared() end end
 
 function M.teleportIsland()
     local w = workspace:FindFirstChild("_WorldOrigin")
@@ -2737,7 +2593,7 @@ debug = { getupvalues = function() return {} end, traceback = function() return 
 
 local loaded, okCount, failCount = {}, 0, 0
 for _, f in ipairs({ "src/util.lua", "src/config.lua", "src/data.lua", "src/ui.lua",
-                     "src/farm.lua", "src/quests.lua", "src/moon.lua", "src/discord.lua", "src/extras.lua", "src/pages.lua", "src/home.lua" }) do
+                     "src/farm.lua", "src/quests.lua", "src/moon.lua", "src/extras.lua", "src/pages.lua", "src/home.lua" }) do
     local chunk, err = loadstring(FILES[f], f)
     if not chunk then
         print("[x] " .. f .. " compile: " .. tostring(err)) failCount = failCount + 1
@@ -2819,7 +2675,7 @@ local okU, errU = pcall(function() win = UI.new(U, C) end)
 assert(okU, "UI.new: " .. tostring(errU))
 print("[ok] UI.new built, tabs declared: " .. tostring(#win.order))
 
-for _, pair in ipairs({ { "src/farm.lua", "farm" }, { "src/quests.lua", "quests" }, { "src/moon.lua", "moon" }, { "src/discord.lua", "discord" }, { "src/extras.lua", "extras" } }) do
+for _, pair in ipairs({ { "src/farm.lua", "farm" }, { "src/quests.lua", "quests" }, { "src/moon.lua", "moon" }, { "src/extras.lua", "extras" } }) do
     local m = loaded[pair[1]]
     local ok, err = pcall(function() m.init(U, C, UI, win, { D = D }) end)
     if ok then print("[ok] init " .. pair[2]) else print("[x] init " .. pair[2] .. ": " .. tostring(err)) failCount = failCount + 1 end
@@ -2864,18 +2720,16 @@ C.set("MirageHop", true)
 local ok5 = pcall(moon.tick, U, C)
 assert(ok5, "moon.tick threw with hops on")
 C.set("MirageHop", false)
-local dc = loaded["src/discord.lua"]
-local okD = pcall(function() dc.init(U, C) end)
-assert(okD, "discord.init threw")
-local okD2, errD = pcall(dc.me)
-assert(okD2, "discord.me threw: " .. tostring(errD))
-local okD3 = pcall(dc.tick)
-assert(okD3, "discord.tick threw with no token")
-C.set("DcToken", "x") C.set("DcChannel", "123")
-local okD4 = pcall(dc.tick)
-assert(okD4, "discord.tick threw with a token set")
-C.set("DcToken", "") C.set("DcChannel", "")
-print("[ok] discord: token gate ok (me/tick do not throw without a token)")
+local moon2 = loaded["src/moon.lua"]
+for _, fn in ipairs({ "join", "hopShared", "shared", "usedCount", "hop", "reset" }) do
+    assert(type(moon2[fn]) == "function", "moon." .. fn .. " missing")
+end
+local okJ = pcall(moon2.join, "not-a-jobid")
+assert(okJ, "join threw on a bad id")
+assert(pcall(moon2.usedCount), "usedCount threw")
+C.set("SharedUrl", "")
+assert(pcall(moon2.hopShared), "hopShared threw with no url")
+print("[ok] moon: join / shared-list helpers present and safe")
 
 print("[ok] moon: phase=" .. phase .. " mirage=" .. tostring(isMirage))
 

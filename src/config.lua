@@ -4,11 +4,7 @@
 local C = {}
 
 C.values = {
-    DcToken = "",
-    DcChannel = "",
-    DcFilter = "",
-    DcAuto = false,
-    DcPoll = 10,
+    jobid = "",
     MirageHop = false,
     MoonHop = false,
     HopMax = 40,

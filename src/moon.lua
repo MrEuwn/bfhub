@@ -140,15 +140,45 @@ local function jobIdsFrom(text)
     return out
 end
 
-function M.fetchShared()
+-- a shared list of jobIds (raw text URL: github raw, gist, pastebin, discord export).
+-- Cycles through them and skips the ones already used, so one press = one new server.
+local used = {}
+
+function M.shared()
     local url = C.get("SharedUrl")
-    if not url or url == "" then return U.notify("set a shared jobId url first") end
+    if not url or url == "" then return nil, "set a jobId url first" end
     local ok, body = pcall(game.HttpGet, game, url)
-    if not ok or type(body) ~= "string" then return U.notify("fetch failed") end
-    local ids = jobIdsFrom(body)
-    U.log("i", "shared url -> " .. #ids .. " jobId(s)")
+    if not ok or type(body) ~= "string" then return nil, "fetch failed" end
+    local out = {}
+    for id in body:gmatch("[%w]+%-%w+%-%w+%-%w+%-[%w]+") do table.insert(out, id) end
+    return out
+end
+
+function M.hopShared()
+    local ids, err = M.shared()
+    if not ids then return U.notify("shared: " .. tostring(err)) end
     if #ids == 0 then return U.notify("no jobId in that url") end
-    return M.hopTo(ids[1], "shared jobId")
+    for _, id in ipairs(ids) do
+        if not used[id] and id ~= game.JobId then
+            used[id] = true
+            U.log("i", string.format("shared: hopping to %s (%d/%d)", id, #ids - (#ids - 1), #ids))
+            return M.hopTo(id, "shared")
+        end
+    end
+    used = {}
+    U.notify("all " .. #ids .. " shared jobIds used - list reset")
+end
+
+function M.join(jobId)
+    if not jobId or #jobId < 30 then return U.notify("that is not a jobId") end
+    used[jobId] = true
+    return M.hopTo(jobId, "manual")
+end
+
+function M.usedCount()
+    local n = 0
+    for _ in pairs(used) do n = n + 1 end
+    return n
 end
 
 -- post our find so other instances / people can jump to it
@@ -209,6 +239,7 @@ end
 
 function M.reset()
     state.hops, state.found, state.nextHop = 0, 0, 0
+    used = {}
 end
 
 function M.stats() return state.hops, state.found, state.lastMoon, state.lastMirage end

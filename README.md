@@ -28,9 +28,7 @@ src/ui.lua          lazy minimalist GUI
 src/farm.lua        Auto Farm Level / Nearest / Boss / Mastery
 src/quests.lua      the named farmers, unlocks, spawner remotes, material farm
 src/moon.lua        moon phase + Mirage detection, auto hop, shared jobIds
-src/discord.lua     read jobIds out of a Discord channel (RODISCORD HOP FARM style)
 src/moon.lua        moon phase + Mirage detection, auto hop, shared jobIds
-src/discord.lua     read jobIds out of a Discord channel (RODISCORD HOP FARM style)
 src/extras.lua      kill aura, skills, ESP, low-end, anti-AFK, walk-on-water
 src/pages.lua       11 tabs
 src/home.lua        Home status + debug panel
@@ -48,8 +46,8 @@ harness.lua         offline contract test (run with luau.exe)
 | Quests | Ken V2, Musketeer Hat, Saber, Rainbow Haki, Soul Guitar, Race V2, Second Sea, Third Sea, Elite Hunter + hops, race reroll / refund |
 | Items | teleport to fruit, store fruits, chest tween/bypass, raid, chip, haki color, legendary sword, TTK, Bartilo, CDK |
 | Teleport | island dropdown from the live `Locations` registry, sea 1/2/3, server id + join |
-| Server | moon phase + Mirage readout, hop until Mirage, hop until full moon, hop limits, Discord channel reader, shared jobId url, post my jobId |
-| Server | moon phase + Mirage readout, hop until Mirage, hop until full moon, hop limits, Discord channel reader, shared jobId url, post my jobId |
+| Server | moon phase + Mirage readout, hop until Mirage, hop until full moon, hop limits, join by jobId, shared jobId url list, post my jobId |
+| Server | moon phase + Mirage readout, hop until Mirage, hop until full moon, hop limits, join by jobId, shared jobId url list, post my jobId |
 | Shop | 47 codes, 11 fighting styles, 9 swords, 7 guns, ghoul/cyborg race, random fruit |
 | Visual | ESP fruits/chests/flowers/islands/players, low-end, anti-AFK, walk on water, panic mode |
 | Misc | auto stats, check boost, webhook, about |
@@ -76,95 +74,32 @@ Read this before expecting it to work like the hubs' "moon-servers" feature.
 **Detecting a full moon or a live Mirage in someone else's server from outside is
 impossible.** `https://games.roblox.com/v1/games/<placeId>/servers/Public` returns only
 `id`, `maxPlayers`, `playing`, `playerIds`, `fps`, `ping`, `name`, `vipServerId`,
-`accessCode`. No game state, and there is no endpoint that carries any. The hubs that
-appear to do this are reading a **Discord channel** where humans post jobIds (HoHo's
-`RODISCORD HOP FARM`, channels `〔🌚〕moon-servers` / `〔🏝〕mirage-servers`) — the
-script only teleports to the id someone else pasted.
+`accessCode`. No game state, and no endpoint carries any. The hubs that appear to do this
+are reading a **Discord channel where humans post jobIds** (HoHo's `RODISCORD HOP FARM`,
+channels `moon-servers` / `mirage-servers`) - a human looks, the script only teleports to
+the id that was pasted. That is the mechanism this hub uses too, without needing a bot:
+you read the channel yourself and paste the jobId.
 
-What this hub does instead:
+What this hub does:
 
-1. **Local detection** in the server you are in, the same way in-game moon checkers do
-   it: compare `Lighting.Sky.MoonTextureId` against the phase asset ids.
-   `9709149431` = Full Moon, `9709149052` = Next Night (waning gibbous, becomes full on
-   the next night) — that pair is what "3/4 moon" means here. `Lighting:GetMoonPhase()`
-   is deprecated and returns a constant, so it is not used.
-   Mirage is read from `workspace.Map.MysticIsland` / `MirageIsland`, then from the
-   `_WorldOrigin.Locations` registry.
+1. **Local detection** in the server you are in, the way in-game moon checkers do it:
+   compare `Lighting.Sky.MoonTextureId` against the phase asset ids. `9709149431` =
+   Full Moon, `9709149052` = Next Night (waning gibbous, becomes full on the next night)
+   - that pair is what "3/4 moon" means here. `Lighting:GetMoonPhase()` is deprecated and
+   returns a constant, so it is not used. Mirage is read from `workspace.Map.MysticIsland`
+   / `MirageIsland`, then from the `_WorldOrigin.Locations` registry.
 2. **Blind hop + re-read**: hop to a public server, read again, repeat up to a limit you
    set. Empty servers are preferred (a fresh server has a fresh moon clock), then the
    least full one. The counter shows how many hops it cost, so the real hit rate is
    visible rather than promised.
-3. **Discord channel reader** (the `RODISCORD HOP FARM` mechanism, automated): a bot
-   token + channel id typed into the UI at runtime, then
-   `GET https://discord.com/api/v10/channels/<id>/messages?limit=100` with
-   `Authorization: Bot <token>`, and the jobId is a UUID inside `content`. Needs
-   `VIEW_CHANNEL` + `READ_MESSAGE_HISTORY`; Message Content Intent is only for the
-   gateway, not REST. Requests go out from the device's IP, which is why this works from
-   an executor when `HttpService` from a Roblox game server gets 403.
-   Buttons: Test Token, Show JobIds Found, Hop To Newest jobId, Auto Hop To New jobIds
-   (polls and skips ids already used). Filter field matches words in the message, so
-   `mirage` only picks the Mirage posts.
-
-   **The token is typed at runtime and never written into the repo.** Treat it as a
-   password: a bot token can read every channel that bot can see, so use a bot on your
-   own private server, not a token someone shares, and rotate it if it leaks. Do not use
-   a user token (self-bot) - that breaks Discord's ToS and gets the account banned.
-
-4. **Shared jobIds, the no-Discord version**: a URL of raw text containing jobIds
-   (a GitHub raw file or gist you keep, or a Discord channel export). It hops to the
-   first one. `Post My jobId To Webhook` sends your own `jobId=` line to your Discord
-   webhook when a moon or Mirage is up, so a second instance (or a friend) can pick it
-   up — that is how a private channel of finds gets built without a server.
-
-Public servers only, as asked: `servers/Public` never returns private servers, and
-nothing here touches the private-server endpoint.
-
-## Moon / Mirage server hunting (what is actually possible)
-
-Read this before expecting it to work like the hubs' "moon-servers" feature.
-
-**Detecting a full moon or a live Mirage in someone else's server from outside is
-impossible.** `https://games.roblox.com/v1/games/<placeId>/servers/Public` returns only
-`id`, `maxPlayers`, `playing`, `playerIds`, `fps`, `ping`, `name`, `vipServerId`,
-`accessCode`. No game state, and there is no endpoint that carries any. The hubs that
-appear to do this are reading a **Discord channel** where humans post jobIds (HoHo's
-`RODISCORD HOP FARM`, channels `moon-servers` / `mirage-servers`) - the script only
-teleports to the id someone else pasted.
-
-What this hub does instead:
-
-1. **Local detection** in the server you are in, the same way in-game moon checkers do
-   it: compare `Lighting.Sky.MoonTextureId` against the phase asset ids.
-   `9709149431` = Full Moon, `9709149052` = Next Night (waning gibbous, becomes full on
-   the next night) - that pair is what "3/4 moon" means here. `Lighting:GetMoonPhase()`
-   is deprecated and returns a constant, so it is not used.
-   Mirage is read from `workspace.Map.MysticIsland` / `MirageIsland`, then from the
-   `_WorldOrigin.Locations` registry.
-2. **Blind hop + re-read**: hop to a public server, read again, repeat up to a limit you
-   set. Empty servers are preferred (a fresh server has a fresh moon clock), then the
-   least full one. The counter shows how many hops it cost, so the real hit rate is
-   visible rather than promised.
-3. **Discord channel reader** (the `RODISCORD HOP FARM` mechanism, automated): a bot
-   token + channel id typed into the UI at runtime, then
-   `GET https://discord.com/api/v10/channels/<id>/messages?limit=100` with
-   `Authorization: Bot <token>`, and the jobId is a UUID inside `content`. Needs
-   `VIEW_CHANNEL` + `READ_MESSAGE_HISTORY`; Message Content Intent is only for the
-   gateway, not REST. Requests go out from the device's IP, which is why this works from
-   an executor when `HttpService` from a Roblox game server gets 403.
-   Buttons: Test Token, Show JobIds Found, Hop To Newest jobId, Auto Hop To New jobIds
-   (polls and skips ids already used). Filter field matches words in the message, so
-   `mirage` only picks the Mirage posts.
-
-   **The token is typed at runtime and never written into the repo.** Treat it as a
-   password: a bot token can read every channel that bot can see, so use a bot on your
-   own private server, not a token someone shares, and rotate it if it leaks. Do not use
-   a user token (self-bot) - that breaks Discord's ToS and gets the account banned.
-
-4. **Shared jobIds, the no-Discord version**: a URL of raw text containing jobIds
-   (a GitHub raw file or gist you keep, or a Discord channel export). It hops to the
-   first one. `Post My jobId To Webhook` sends your own `jobId=` line to your Discord
-   webhook when a moon or Mirage is up, so a second instance (or a friend) can pick it
-   up - that is how a private channel of finds gets built without a bot.
+3. **Join by jobId**: paste a jobId someone posted and the hub teleports straight to it.
+   No token, no bot, nothing to configure beyond the paste.
+4. **Shared jobId list**: a URL of raw text containing jobIds (a GitHub raw file or gist
+   you keep). `Join Next Unused From URL` takes the next one it has not used yet and
+   cycles, so repeated presses walk the list instead of hammering the same server.
+   `Post My jobId To Webhook` sends your own `jobId=` line to your Discord webhook when a
+   moon or Mirage is up, so a second instance (or a friend) can pick it up - that is how a
+   private channel of finds gets built without a bot.
 
 Public servers only, as asked: `servers/Public` never returns private servers, and
 nothing here touches the private-server endpoint.
