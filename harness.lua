@@ -347,58 +347,203 @@ function U.autoHaki()
     U.F("Ken")
 end
 
+-- tool helpers -------------------------------------------------------------
+function U.findTool(name)
+    local c = U.char()
+    for _, src in ipairs({ c, U.LP.Backpack }) do
+        if src then
+            for _, t in ipairs(src:GetChildren()) do
+                if t:IsA("Tool") and t.Name == name then return t end
+            end
+        end
+    end
+    return nil
+end
+
+function U.hasTool(name) return U.findTool(name) ~= nil end
+
+function U.equipTool(name)
+    local hum, t = U.hum(), U.findTool(name)
+    if hum and t and t.Parent ~= U.char() then hum:EquipTool(t) end
+end
+
+-- mastery of a tool by name (the game exposes it on the tool's own value)
+function U.mastery(name)
+    local t = U.findTool(name)
+    if not t then return nil end
+    local m = t:FindFirstChild("Mastery") or t:FindFirstChild("Level")
+    return m and m.Value or nil
+end
+
+-- nearest dropped fruit on the ground
+function U.nearestFruit()
+    local r = U.root()
+    if not r then return nil end
+    local best, bd = nil, 2500
+    for _, p in ipairs(workspace:GetChildren()) do
+        if p:IsA("Tool") or string.find(p.Name, "Fruit") then
+            local d = (p.Position - r.Position).Magnitude
+            if d < bd then best, bd = p, d end
+        end
+    end
+    return best
+end
+
 return U
 ]==]
 FILES["src/config.lua"] = [==[
---[[ config.lua - flat state store. Toggles are plain booleans/numbers/strings
-     keyed by name, shared by the UI rows and the feature modules. ]]
+--[[ config.lua - flat state store. Toggle names and defaults are generated from the
+     source hub's own UI spec, so the UI and the feature modules cannot disagree. ]]
 
 local C = {}
 
 C.values = {
-    -- farm
-    farm = false,
-    autoquest = true,
-    farmtool = "Melee",
-    farmdistance = 20,
-    orbit = true,
-    bring = true,
-    bringdist = 250,
-    autoclick = true,
-    clickdelay = 0.18,
-    -- travel
-    tween = true,
-    tweenspeed = 170,
-    portalhop = false,
-    hover = true,
-    noclip = true,
-    -- combat
-    method = "m1",
-    fastattack = true,
-    attackdist = 60,
-    killaura = false,
-    aura = 120,
-    autobuso = true,
-    autoken = true,
-    healthskill = 25,
-    -- mastery / stats
-    automastery = false,
-    masterytool = "Blox Fruit",
-    masteryvalue = 300,
-    autostat = false,
     stat = "Melee",
-    statpoints = 1,
-    -- races / misc
-    autoracev2 = false,
-    heal = false,
+    autostat = false,
     esp = false,
+    killaura = false,
+    farm = false,
+    hover = true,
+    tween = true,
+    noclip = true,
+    orbit = true,
+    hitbox = 60,
+    AimBotSkill = true,
+    AntiAFK = true,
+    AttackDistance = true,
+    AutoBartiloQuest = false,
+    AutoBuyChip = false,
+    AutoBuyHakiColor = false,
+    AutoBuyLawChip = false,
+    AutoCakePrince = false,
+    AutoCandy = false,
+    AutoChestBypass = false,
+    AutoChestTween = false,
+    AutoClick = true,
+    AutoClickDelay = 0.18,
+    AutoCollectYama = false,
+    AutoCursedCaptain = false,
+    AutoCursedDualKatana = false,
+    AutoDarkbeard = false,
+    AutoDeathStep = false,
+    AutoDonSwanHop = false,
+    AutoDoughKing = false,
+    AutoDragonTalon = false,
+    AutoElectricClaw = false,
+    AutoEliteHunter = false,
+    AutoEliteHunterHop = false,
+    AutoEnelBossPole = false,
+    AutoFactory = false,
+    AutoFarmBone = false,
+    AutoFarmBossSelected = false,
+    AutoFarmEctoplasm = false,
+    AutoFarmMastery = false,
+    AutoFarmMaterial = false,
+    AutoFarmNearest = false,
+    AutoFarmRaid = false,
+    AutoFarmSea = false,
+    AutoFarm_Level = true,
+    AutoFinishTrial = false,
+    AutoGift = false,
+    AutoGodHuman = false,
+    AutoHaki = true,
+    AutoKenV2 = false,
+    AutoKillDonSwan = false,
+    AutoKillLawBoss = false,
+    AutoKitsuneIsland = false,
+    AutoLegendarySword = false,
+    AutoMasteryFightingStyle = false,
+    AutoMasteryValue = 300,
+    AutoMusketeerHat = false,
+    AutoPiratesSea = false,
+    AutoRaceV2 = false,
+    AutoRainbowHaki = false,
+    AutoRandomFruit = false,
+    AutoRengoku = false,
+    AutoRengokuHop = false,
+    AutoRipIndra = false,
+    AutoSawBoss = false,
+    AutoSecondSea = false,
+    AutoSharkmanKarate = false,
+    AutoSoulGuitar = false,
+    AutoSoulReaper = false,
+    AutoStartLawRaid = false,
+    AutoStats = false,
+    AutoStoreFruits = false,
+    AutoSuperhuman = false,
+    AutoTTK = false,
+    AutoThirdSea = false,
+    AutoTradeBone = false,
+    AutoTushita = false,
+    AutoTushitaHop = false,
+    AutoUnlockSaber = false,
+    AutoWoodPlanks = false,
+    BossSelected = "The Saw",
+    BringMobs = true,
+    BringMobsDistance = 250,
+    EspChests = false,
+    EspFlowers = false,
+    EspFruits = false,
+    EspIslands = false,
+    EspPlayer = false,
+    FarmPos = 20,
+    FarmTool = "Melee",
+    FastAttack = true,
+    FishBoat = true,
+    FishCrewMember = true,
+    HealthPanic = 25,
+    HealthSkill = 25,
+    KillAllBosses = false,
+    MaterialSelected = "Leather + Scrap Metal",
+    NPCtween = false,
+    PanicMode = true,
+    Piranha = true,
+    PirateBrigade = true,
+    PirateGrandBrigade = true,
+    RainbowHakiHop = false,
+    RipIndraLegendaryHaki = false,
+    SeaAimBotSkill = true,
+    SeaBeast = true,
+    SeaBeastTriple = true,
+    SeaBoatSpeed = 250,
+    SeaLevelTP = "6",
+    SeaSkillC = true,
+    SeaSkillF = false,
+    SeaSkillV = true,
+    SeaSkillX = true,
+    SeaSkillZ = true,
+    SelectRaidChip = "1",
+    Shark = true,
+    SkillC = true,
+    SkillF = false,
+    SkillV = true,
+    SkillX = true,
+    SkillZ = true,
+    TakeQuestBoss = true,
+    TeleportIslandSelect = "1",
+    TeleportToFruit = false,
+    TeleportToIsland = false,
+    Terrorshark = true,
+    ToolMastery = "Blox Fruit",
+    TradeAzureEmber = false,
+    TweenSpeed = 170,
+    WalkOnWater = true,
+    attackdist = 60,
+    aura = 120,
+    bossselected = "1",
+    clickdelay = 0.18,
     espplayers = false,
+    farmmode = "level",
+    heal = false,
+    island = "1",
     lowend = false,
-    antiafk = true,
-    walkonwater = false,
+    method = "m1",
+    orbiting = true,
+    serverid = "",
     webhook = "",
 }
 
+-- chain_<name> and fighter_<name> keys are created on demand by the UI rows
 function C.get(k) return C.values[k] end
 
 function C.set(k, v)
@@ -632,6 +777,120 @@ D.fruits = {
 
 D.codes = {
     "NEWTROLL", "KITT_RESET", "Sub2Fer999", "Magicbus", "kittgaming", "SECRET_ADMIN", "EXP_5B", "CONTROL", "UPDATE11", "XMASEXP", "1BILLION", "ShutDownFix2", "UPD14", "STRAWHATMAINE", "TantaiGaming", "Colosseum", "Axiore", "Sub2Daigrock", "Sky Island 3", "Sub2OfficialNoobie", "SUB2NOOBMASTER123", "THEGREATACE", "Fountain City", "BIGNEWS", "FUDD10", "SUB2GAMERROBOT_EXP1", "UPD15", "2BILLION", "UPD16", "3BVISITS", "Starcodeheo", "Bluxxy", "DRAGONABUSE", "Sub2CaptainMaui", "DEVSCOOKING", "Enyu_is_Pro", "JCWK", "Starcodeheo", "Bluxxy", "fudd10_v2", "SUB2GAMERROBOT_EXP1", "Sub2NoobMaster123", "Sub2UncleKizaru", "Sub2Daigrock", "Axiore", "TantaiGaming", "StrawHatMaine"
+}
+
+
+--[[ materials[sea][name] = { mobs, farmCF } -- mob farm spots for each material ]]
+D.materials2 = {}
+D.materials2[1] = {
+    ["Angel Wings"] = { { "Royal Soldier", "Royal Squad" }, CFrame.new(-7742, 5634, -1564) },
+    ["Leather + Scrap Metal"] = { { "Pirate", "Brute" }, CFrame.new(-1257, 54, 4091) },
+    ["Magma Ore"] = { { "Military Soldier" }, CFrame.new(-5408, 11, 8456) },
+    ["Fish Tail"] = { { "Fishman Warrior" }, CFrame.new(60931, 19, 1574) }
+}
+D.materials2[2] = {
+    ["Leather + Scrap Metal"] = { { "Scrap Metal" }, CFrame.new(-1026, 73, 1375) },
+    ["Magma Ore"] = { { "Lava Pirate" }, CFrame.new(-5241, 50, -4713) },
+    ["Mystic Droplet"] = { { "Water Fighter" }, CFrame.new(-3350, 282, -10527) },
+    ["Radiactive Material"] = { { "Factory Staff" }, CFrame.new(-73, 149, -112) },
+    ["Vampire Fang"] = { { "Vampire" }, CFrame.new(-6030, 6, -1281) }
+}
+D.materials2[3] = {
+    ["Leather + Scrap Metal"] = { { "Pirate Millionaire" }, CFrame.new(-364, 116, 5692) },
+    ["Fish Tail"] = { { "Fishman Captain", "Fishman Raider" }, CFrame.new(-10679, 398, -8975) },
+    ["Gunpowder"] = { { "Pistol Billionaire" }, CFrame.new(-394, 135, 5981) },
+    ["Mini Tusk"] = { { "Mythological Pirate" }, CFrame.new(-13510, 584, -6986) },
+    ["Conjured Cocoa"] = { { "Cocoa Warrior", "Chocolate Bar Battler" }, CFrame.new(400, 81, -12257) },
+    ["Dragon Scale"] = { { "Dragon Crew Archer" }, CFrame.new(6689, 378, 331) }
+}
+
+
+--[[ spawner remotes: some bosses only appear after a remote is spammed.
+     values are the CommF_ argument lists, called every `interval` seconds. ]]
+D.spawners = {
+    ["Cake Prince"]  = { { "CakePrinceSpawner" }, 1 },
+    ["Dough King"]   = { { "SweetChaliceNpc" }, 2 },
+    ["Elite Hunter"] = { { "EliteHunter" }, 3 },
+    ["Ken V2"]       = { { "CitizenQuestProgress", "Citizen" }, 1 },
+    ["Musketeer Hat"]= { { "CitizenQuestProgress", "Citizen" }, 1 },
+    ["Saber"]        = { { "ProQuestProgress", "RichSon" }, 2 },
+    ["Soul Guitar"]  = { { "GuitarPuzzleProgress", "Ghost" }, 2 },
+    ["Race V2"]      = { { "Alchemist", "1" }, 1 },
+    ["Second Sea"]   = { { "DressrosaQuestProgress", "Detective" }, 2 },
+    ["Third Sea"]    = { { "ZQuestProgress", "Check" }, 2, { "TravelZou" } },
+}
+
+--[[ bossFarms: the simple "kill this boss, else stand here" loops, one row each.
+     { mobs, fallbackCF, tool|nil, toolCF|nil, spawner|nil, hopKey|nil } ]]
+D.bossFarms = {
+    ["The Saw"]        = { { "The Saw" }, CFrame.new(-690, 15, 1583) },
+    ["Thunder God"]    = { { "Thunder God" }, CFrame.new(-7739, 5657, -2289) },
+    ["Cursed Captain"] = { { "Cursed Captain" }, CFrame.new(912, 186, 33591) },
+    ["Don Swan"]       = { { "Don Swan" }, CFrame.new(2272, 15, 759), nil, nil, nil, "AutoDonSwanHop" },
+    ["Darkbeard"]      = { { "Darkbeard" }, CFrame.new(3746, 13, -3632), "Fist of Darkness", CFrame.new(3779, 16, -3500) },
+    ["rip_indra True Form"] = { { "rip_indra True Form" }, CFrame.new(-5333, 424, -2673), "God's Chalice", CFrame.new(-5561, 314, -2663) },
+    ["Soul Reaper"]    = { { "Soul Reaper" }, CFrame.new(-9529, 316, 6712), "Hallow Essence" },
+    ["Order"]          = { { "Order" }, CFrame.new(-6300, 16, -4997) },
+    ["Bone"]           = { { "Reborn Skeleton", "Living Zombie", "Demonic Soul", "Posessed Mummy" }, CFrame.new(-9513, 164, 5786) },
+    ["Ectoplasm"]      = { { "Ship Deckhand", "Ship Engineer", "Ship Steward", "Ship Officer" }, CFrame.new(912, 186, 33591) },
+    ["Candy"]          = { { "Candy Pirate", "Snow Demon" }, CFrame.new(-9513, 164, 5786) },
+    ["Pirates Sea"]    = { { "Pirate", "Brute" }, CFrame.new(-5556, 314, -2988), nil, nil, nil, nil, 700 },
+    ["Factory"]        = { { "Factory Staff" }, CFrame.new(410, 200, -414), nil, nil, nil, nil, nil, true },
+    ["Rengoku"]        = { { "Arctic Warrior", "Snow Lurker" }, CFrame.new(5707, 28, -6402) },
+    ["Tushita"]        = { { "Cursed Skeleton", "Cursed Skeleton Warrior" }, CFrame.new(-9513, 164, 5786) },
+}
+
+--[[ fighters: style -> { mobs, farmCF, style } -- buy the style once mastery is done ]]
+D.fighters = {
+    { "Death Step",        { "Arctic Warrior", "Snow Lurker" }, CFrame.new(5707, 28, -6402), "Death Step" },
+    { "Electric Claw",     { "Dragon Crew Archer", "Dragon Crew Warrior" }, CFrame.new(6588, 170, -1104), "Electric Claw" },
+    { "Sharkman Karate",   { "Fishman Raider", "Fishman Captain" }, CFrame.new(-10679, 398, -8975), "Sharkman Karate" },
+    { "Dragon Talon",      { "Dragon Crew Warrior", "Dragon Crew Archer" }, CFrame.new(6588, 170, -1104), "Dragon Talon" },
+    { "Superhuman",        { "Military Soldier", "Military Spy" }, CFrame.new(-5408, 11, 8456), "Superhuman" },
+    { "Godhuman",          { "Fishman Raider", "Fishman Captain" }, CFrame.new(-10679, 398, -8975), "Godhuman" },
+}
+
+--[[ questChains: the multi-step unlocks, ported step-by-step from the source.
+     Each step: { text, cf, tool|nil, quest|nil, mobs|nil, remote|nil, level|nil } ]]
+D.chains = {
+    ["Ken V2"] = {
+        { text = "buy the three fruits from the Citizen", cf = CFrame.new(-12445, 332, -7676), remote = { "CitizenQuest", 1 } },
+        { text = "kill Forest Pirates for the Citizen quest", cf = CFrame.new(-12512, 340, -9872), mobs = { "Forest Pirate" }, quest = "Forest Pirate" },
+        { text = "hand in at the Citizen", cf = CFrame.new(-12445, 332, -7676), remote = { "CitizenQuestProgress", "Citizen" } },
+    },
+    ["Musketeer Hat"] = {
+        { text = "kill Pirate Millionaire for the Citizen", cf = CFrame.new(-13393, 319, -8423), mobs = { "Pirate Millionaire" } },
+        { text = "hand in at the Citizen", cf = CFrame.new(-12512, 340, -9872), remote = { "CitizenQuestProgress", "Citizen" } },
+    },
+    ["Saber"] = {
+        { text = "talk to the Rich Son", cf = CFrame.new(-1461, 30, -51), remote = { "ProQuestProgress", "RichSon" } },
+        { text = "kill the mobs, then return", cf = CFrame.new(-1408, 30, 3), remote = { "ProQuestProgress", "SickMan" } },
+        { text = "buy the Relic and open the door", cf = CFrame.new(1113, 5, 4352), tool = "Relic" },
+    },
+    ["Rainbow Haki"] = {
+        { text = "kill the five bosses", mobs = { "Stone", "Island Empress", "Kilo Admiral", "Captain Elephant", "Beautiful Pirate" } },
+        { text = "bet at the Horned Man", cf = CFrame.new(-1049, 40, 6791), remote = { "HornedMan", "Bet" } },
+    },
+    ["Soul Guitar"] = {
+        { text = "buy the Soul Guitar", cf = CFrame.new(-10129, 154, 5928), remote = { "soulGuitarBuy", true } },
+        { text = "finish the ghost puzzle", cf = CFrame.new(-10129, 154, 5928), tool = "Soul Guitar", remote = { "GuitarPuzzleProgress", "Ghost" } },
+    },
+    ["Race V2"] = {
+        { text = "accept the Alchemist quest", cf = CFrame.new(-2777, 73, -3570), remote = { "Alchemist", "1" } },
+        { text = "collect the flowers, then evolve", cf = CFrame.new(-2777, 73, -3570), remote = { "Alchemist", "2" } },
+    },
+    ["Second Sea"] = {
+        { text = "level 700 required", level = 700 },
+        { text = "get the Key from the Detective", cf = CFrame.new(4852, 6, 719), remote = { "DressrosaQuestProgress", "Detective" } },
+        { text = "open the door with the Key", cf = CFrame.new(1346, 37, -1329), tool = "Key" },
+        { text = "kill the Ice Admiral", mobs = { "Ice Admiral" } },
+        { text = "sail to the second sea", cf = CFrame.new(1280, 27, -1380), remote = { "TravelDressrosa" } },
+    },
+    ["Third Sea"] = {
+        { text = "level 1500 required", level = 1500 },
+        { text = "kill rip_indra", mobs = { "rip_indra" } },
+        { text = "sail to the third sea", cf = CFrame.new(0, 0, 0), remote = { "TravelZou" } },
+    },
 }
 
 -- highest row whose range contains the level ("for" is reserved, hence .at)
@@ -1025,15 +1284,15 @@ FILES["src/farm.lua"] = [==[
      state machine, not a task.spawn per feature, so a toggle off actually stops it. ]]
 
 local M = {}
-local D, U, C
+local D, Q, U, C
 
 function M.init(_U, _C, _UI, _win, deps)
-    U, C, D = _U, _C, deps and deps.D
+    U, C, Q, D = _U, _C, deps and deps.Q, deps and deps.D
     M.quest = nil
 end
 
 local function travel(cf, speed)
-    if C.get("tween") then U.tweenTo(cf, speed or C.get("tweenspeed")) else U.tp(cf) end
+    if C.get("tween") then U.tweenTo(cf, speed or C.get("TweenSpeed")) else U.tp(cf) end
 end
 
 -- level -> new quest row. Accepting teleports to the giver first: the call is
@@ -1041,9 +1300,15 @@ end
 local function ensureQuest()
     local lv = U.level()
     if M.quest and lv >= M.quest[1] and lv <= M.quest[2] then return end
-    local row = D and D.questAt(U.sea or 1, lv)
-    if not row then return end
-    M.quest = row
+    local sea = U.sea or 1
+    local row = Q and Q.at(sea, lv)
+    if row then
+        M.quest = row
+    elseif D then
+        local r = D.questAt(sea, lv)
+        if r then M.quest = { r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8] } end
+    end
+    if not M.quest then return end
     local _, _, mon, nq, num, cfq = M.quest[1], M.quest[2], M.quest[3], M.quest[4], M.quest[5], M.quest[6]
     U.log("i", string.format("quest Lv%d -> %s (%s #%d)", lv, tostring(mon), tostring(nq), tonumber(num) or 1))
     travel(cfq * CFrame.new(0, 5, 0), 200)
@@ -1070,18 +1335,18 @@ local function farmLevel()
     end
 
     U.noclip(C.get("noclip"))
-    U.equip(C.get("farmtool"))
-    if C.get("autobuso") or C.get("autoken") then U.autoHaki() end
+    U.equip(C.get("FarmTool"))
+    if C.get("AutoHaki") then U.autoHaki() end
 
-    local d = C.get("farmdistance")
+    local d = C.get("FarmPos")
     travel(C.get("orbit") and U.orbit(mob, d) or (U.mobPos(mob).CFrame + Vector3.new(0, d, 0)))
     U.hover(C.get("hover"))
-    if C.get("bring") then U.bringMobs(mon) end
+    if C.get("BringMobs") then U.bringMobs(mon) end
 
     -- clicks only land in range; skip the swing when still far away
     local root, p = U.root(), U.mobPos(mob)
     if root and p and (p.Position - root.Position).Magnitude < 45 then
-        if C.get("method") == "net" then U.netAttack(C.get("attackdist")) else U.attack(C.get("attackdist")) end
+        if C.get("method") == "net" then U.netAttack(C.get("hitbox")) else U.attack(C.get("hitbox")) end
     end
 end
 
@@ -1090,58 +1355,58 @@ local function farmNearest()
     local mob = U.nearestMob()
     if not mob then return end
     U.noclip(C.get("noclip"))
-    U.equip(C.get("farmtool"))
-    if C.get("autobuso") then U.autoHaki() end
-    travel(U.orbit(mob, C.get("farmdistance")))
+    U.equip(C.get("FarmTool"))
+    if C.get("AutoHaki") then U.autoHaki() end
+    travel(U.orbit(mob, C.get("FarmPos")))
     U.hover(C.get("hover"))
-    if C.get("bring") then U.bringMobs(U.baseName(mob.Name)) end
+    if C.get("BringMobs") then U.bringMobs(U.baseName(mob.Name)) end
     local root, p = U.root(), U.mobPos(mob)
     if root and p and (p.Position - root.Position).Magnitude < 45 then
-        U.attack(C.get("attackdist"))
+        U.attack(C.get("hitbox"))
     end
 end
 
 -- Boss: travel to the spawn point, take the quest if the boss needs one, kill.
 local function farmBoss()
-    local name = C.get("bossselected")
+    local name = C.get("BossSelected")
     if not name or not D then return end
     local row = D.bosses[name]
     if not row then return end
     local needQuest, cf, qname, qnum = row[1], row[2], row[3], row[4]
-    if needQuest and C.get("bossquest") and qname then U.F("StartQuest", qname, qnum or 1) end
+    if needQuest and C.get("TakeQuestBoss") and qname then U.F("StartQuest", qname, qnum or 1) end
     local mob = U.nearestMob(name)
     if not mob then travel(cf * CFrame.new(0, 8, 0)) return end
-    travel(U.orbit(mob, C.get("farmdistance")))
+    travel(U.orbit(mob, C.get("FarmPos")))
     U.hover(C.get("hover"))
-    if C.get("bring") then U.bringMobs(name) end
+    if C.get("BringMobs") then U.bringMobs(name) end
     local root, p = U.root(), U.mobPos(mob)
     if root and p and (p.Position - root.Position).Magnitude < 45 then
-        U.attack(C.get("attackdist"))
+        U.attack(C.get("hitbox"))
     end
 end
 
 -- Mastery: same as level but with the chosen tool equipped
 local function farmMastery()
-    local tool = C.get("masterytool")
+    local tool = C.get("ToolMastery")
     local mob = U.nearestMob()
     if not mob then return end
     U.equip(tool)
-    travel(U.orbit(mob, C.get("farmdistance")))
+    travel(U.orbit(mob, C.get("FarmPos")))
     U.hover(C.get("hover"))
-    if C.get("bring") then U.bringMobs(U.baseName(mob.Name)) end
+    if C.get("BringMobs") then U.bringMobs(U.baseName(mob.Name)) end
     local root, p = U.root(), U.mobPos(mob)
     if root and p and (p.Position - root.Position).Magnitude < 45 then
-        U.attack(C.get("attackdist"))
+        U.attack(C.get("hitbox"))
     end
-    if C.get("autostat") then
+    if C.get("AutoStats") then
         local pts = U.data("Points")
-        if pts and pts > 0 then U.F("AddPoint", C.get("stat"), pts) end
+        if pts and pts > 0 then U.F("AddPoint", "Melee", pts) end
     end
 end
 
 function M.tick(_U, _C)
     if not U.alive() then return end
-    if C.get("fastattack") then U.fastAttack() end
+    if C.get("FastAttack") or C.get("AttackDistance") then U.fastAttack() end
     if C.get("farm") then
         local mode = C.get("farmmode") or "level"
         if mode == "level" then farmLevel()
@@ -1154,12 +1419,268 @@ end
 
 return M
 ]==]
+FILES["src/quests.lua"] = [==[
+--[[ quests.lua - the driving loops for the named quests and unlocks.
+
+     Every feature is a step list walked by tick(), not a task.spawn loop: a toggle
+     off has to actually stop the work, and one scheduler keeps it cheap on mobile.
+
+     Two drivers:
+       generic  - "kill this boss, else stand here" (data.bossFarms)
+       chains   - the multi-step unlocks (data.chains), with spawner remotes
+]]
+
+local M = {}
+local U, C, D
+
+-- per-feature runtime state, reset when the feature is switched off
+local state = {}
+local function st(key)
+    local s = state[key]
+    if not s then
+        s = { step = 1, nextSpawn = 0, wp = 0 }
+        state[key] = s
+    end
+    return s
+end
+
+function M.reset(key) state[key] = nil end
+
+function M.init(_U, _C, _UI, _win, deps)
+    U, C, D = _U, _C, deps and deps.D
+end
+
+-- travel + fight the same way the main farm does ---------------------------
+local function travel(cf)
+    if not cf then return end
+    if C.get("tween") then U.tweenTo(cf, C.get("TweenSpeed")) else U.tp(cf) end
+end
+
+local function engage(mob, opts)
+    opts = opts or {}
+    U.noclip(C.get("noclip"))
+    if opts.tool then U.equipTool(opts.tool) else U.equip(C.get("FarmTool")) end
+    if C.get("AutoHaki") or C.get("AutoKenV2") then U.autoHaki() end
+    local d = C.get("FarmPos")
+    travel(C.get("orbit") and U.orbit(mob, d) or (U.mobPos(mob).CFrame + Vector3.new(0, d, 0)))
+    U.hover(C.get("hover"))
+    if opts.bring ~= false and C.get("BringMobs") then U.bringMobs(U.baseName(mob.Name)) end
+    local root, p = U.root(), U.mobPos(mob)
+    if root and p and (p.Position - root.Position).Magnitude < 45 then
+        if C.get("method") == "net" then U.netAttack(C.get("attackdist")) else U.attack(C.get("attackdist")) end
+    end
+end
+
+-- find the first mob of any name in the list
+local function firstMob(names)
+    for _, n in ipairs(names) do
+        local m = U.nearestMob(n)
+        if m then return m end
+    end
+    return nil
+end
+
+-- spawner remotes: some bosses only appear after their remote is spammed
+local function fireSpawner(key, s)
+    local sp = D and D.spawners and D.spawners[key]
+    if not sp then return end
+    local now = os.clock()
+    if now < s.nextSpawn then return end
+    s.nextSpawn = now + (sp[2] or 2)
+    for i = 3, #sp do U.F(table.unpack(sp[i])) end
+    U.F(table.unpack(sp[1]))
+end
+
+-- a step from data.chains --------------------------------------------------
+local function runStep(step, s)
+    if step.level and U.level() < step.level then
+        U.notify("needs level " .. step.level)
+        return false
+    end
+    if step.mobs then
+        local m = firstMob(step.mobs)
+        if m then
+            engage(m, { tool = step.tool })
+            return false           -- keep killing until the mob is gone
+        end
+    end
+    if step.remote then U.F(table.unpack(step.remote)) end
+    if step.tool then U.equipTool(step.tool) end
+    travel(step.cf)
+    s.step = s.step + 1
+    U.log("i", "step done, next: " .. s.step)
+    return true
+end
+
+local function runChain(key)
+    local chain = D and D.chains and D.chains[key]
+    if not chain then return end
+    local s = st(key)
+    fireSpawner(key, s)
+    local step = chain[s.step]
+    if not step then
+        U.notify(key .. " chain finished")
+        C.set("chain_" .. key, false)
+        return
+    end
+    runStep(step, s)
+end
+
+-- a row from data.bossFarms ------------------------------------------------
+local function runBossFarm(key)
+    local row = D and D.bossFarms and D.bossFarms[key]
+    if not row then return end
+    -- BossSelected: the dropdown value IS the key, resolve it at run time
+    if key == "BossSelected" then row = D.bossFarms[C.get("BossSelected") or ""] end
+    if not row then return end
+    local s = st(key)
+    if row[7] and U.level() < row[7] then return end
+    fireSpawner(key, s)
+
+    -- some bosses need a summoning tool equipped before they spawn
+    if row[3] and U.hasTool(row[3]) then
+        U.equipTool(row[3])
+        travel(row[4] or row[2])
+        return
+    end
+    local mob = firstMob(row[1])
+    if mob then
+        engage(mob, { bring = not row[8] })
+    elseif row[6] and C.get(row[6]) then
+        M.serverHop()
+    else
+        travel(row[2])
+    end
+end
+
+-- registry: feature key -> how to drive it --------------------------------
+local GENERIC = {
+    ["boss_BossSelected"] = "BossSelected",
+    ["boss_The Saw"] = "The Saw",
+    ["boss_Thunder God"] = "Thunder God",
+    ["boss_Cursed Captain"] = "Cursed Captain",
+    ["boss_Don Swan"] = "Don Swan",
+    ["boss_Darkbeard"] = "Darkbeard",
+    ["boss_rip_indra True Form"] = "rip_indra True Form",
+    ["boss_Soul Reaper"] = "Soul Reaper",
+    ["boss_Order"] = "Order",
+    ["mob_Bone"] = "Bone",
+    ["mob_Ectoplasm"] = "Ectoplasm",
+    ["mob_Candy"] = "Candy",
+    ["mob_Pirates Sea"] = "Pirates Sea",
+    ["mob_Factory"] = "Factory",
+    ["mob_Rengoku"] = "Rengoku",
+    ["mob_Tushita"] = "Tushita",
+}
+
+local CHAINS = {
+    "Ken V2", "Musketeer Hat", "Saber", "Rainbow Haki", "Soul Guitar",
+    "Race V2", "Second Sea", "Third Sea",
+}
+
+-- KillAllBosses: walk the sea's boss list and kill whatever is up
+local function killAllBosses()
+    local list = D and D.bossList[U.sea or 1] or {}
+    for _, name in ipairs(list) do
+        local m = U.nearestMob(name)
+        if m then
+            engage(m, {})
+            return
+        end
+    end
+end
+
+function M.tick(_U, _C)
+    if not U.alive() then return end
+    for key, row in pairs(GENERIC) do
+        if C.get(key) then runBossFarm(row) end
+    end
+    if C.get("KillAllBosses") then killAllBosses() end
+    -- Elite Hunter has no fixed spot: the target changes with the quest
+    if C.get("chain_Elite Hunter") then
+        local names = { "Diablo", "Deandre", "Urban" }
+        local m = firstMob(names)
+        if m then
+            engage(m, {})
+        else
+            U.F("EliteHunter")
+            if C.get("AutoEliteHunterHop") then M.serverHop() else travel(CFrame.new(-5119, 315, -2964)) end
+        end
+    end
+    for _, key in ipairs(CHAINS) do
+        if C.get("chain_" .. key) then runChain(key) end
+    end
+    -- material farm: mobs + spot come from data.materials2
+    if C.get("mat_" .. tostring(C.get("MaterialSelected"))) then
+        local sea = D.materials2[U.sea or 1] or {}
+        local row = sea[C.get("MaterialSelected")]
+        if row then
+            local mob = firstMob(row[1])
+            if mob then engage(mob, {}) else travel(row[2]) end
+        end
+    end
+    -- fighters: mastery then buy
+    for _, f in ipairs(D and D.fighters or {}) do
+        if C.get("fighter_" .. f[1]) then
+            local mob = firstMob(f[2])
+            if mob then
+                engage(mob, { tool = C.get("FarmTool") })
+            else
+                travel(f[3])
+                if U.mastery(f[1]) and U.mastery(f[1]) >= (C.get("AutoMasteryValue") or 300) then
+                    U.F(f[4], true) U.F(f[4])
+                    U.notify("buying " .. f[4])
+                    C.set("fighter_" .. f[1], false)
+                end
+            end
+        end
+    end
+    -- chests: grab whatever chest is in range while farming
+    if C.get("AutoChestTween") or C.get("AutoChestBypass") then
+        for _, p in ipairs(workspace:GetChildren()) do
+            if p:IsA("MeshPart") and string.find(p.Name, "Chest") then
+                travel(p.CFrame * CFrame.new(0, 3, 0))
+                break
+            end
+        end
+    end
+    -- fruit pickup / store
+    if C.get("TeleportToFruit") then
+        local f = U.nearestFruit()
+        if f then travel(f.CFrame * CFrame.new(0, 3, 0)) end
+    end
+    if C.get("AutoStoreFruits") then U.F("StoreFruit", "1") end
+end
+
+-- button actions -----------------------------------------------------------
+function M.serverHop()
+    local Http = game:GetService("HttpService")
+    local TS = game:GetService("TeleportService")
+    local ok, body = pcall(function()
+        return game:HttpGet(string.format("https://games.roblox.com/v1/games/%d/servers/Public?limit=100", game.PlaceId))
+    end)
+    if not ok or not body then return U.notify("server list blocked") end
+    for _, s in ipairs(Http:JSONDecode(body).data or {}) do
+        if s.playing < s.maxPlayers and s.id ~= game.JobId then
+            U.notify("hopping...")
+            TS:TeleportToPlaceInstance(game.PlaceId, s.id, U.LP)
+            return
+        end
+    end
+    U.notify("no free server")
+end
+
+return M
+]==]
 FILES["src/extras.lua"] = [==[
---[[ extras.lua - combat helpers, ESP, world utilities, server hop, codes, shops.
+--[[ extras.lua - combat helpers, skills, ESP, world utilities, codes, shops.
      Each block is gated on its own toggle so the scheduler stays cheap. ]]
 
 local M = {}
 local U, C, D
+local vp = nil
+local vu = game:GetService("VirtualUser")
+local UIS = game:GetService("UserInputService")
 
 function M.init(_U, _C, _UI, _win, deps)
     U, C, D = _U, _C, deps and deps.D
@@ -1177,7 +1698,7 @@ function M.aura()
     if not mob then return end
     local root = U.root()
     if root then root.CFrame = U.mobPos(mob).CFrame + Vector3.new(0, 12, 0) end
-    U.equip(C.get("farmtool"))
+    U.equip(C.get("FarmTool"))
     if C.get("method") == "net" then U.netAttack(C.get("aura")) else U.attack(C.get("aura")) end
 end
 
@@ -1215,21 +1736,43 @@ local function tag(m, hrp, text, color)
 end
 
 function M.esp()
-    local want = C.get("esp")
-    if not want then
+    local want = C.get("EspFruits") or C.get("EspChests") or C.get("EspIslands") or C.get("EspFlowers")
+    local wantPlayers = C.get("EspPlayer")
+    if not want and not wantPlayers then
         if next(tags) then clearTags() end
         return
     end
     local seen = {}
-    for _, m in ipairs(U.mobs()) do
-        local p = U.mobPos(m)
-        if p then
-            seen[m] = true
-            tag(m, p, U.baseName(m.Name), Color3.fromRGB(255, 235, 120))
+    local function scan(names, color, isTool)
+        local root = workspace
+        for _, p in ipairs(root:GetChildren()) do
+            local hit = false
+            for _, n in ipairs(names) do
+                if string.find(p.Name, n) then hit = true break end
+            end
+            if hit and p:IsA("BasePart") then
+                seen[p] = true
+                tag(p, p, p.Name, color)
+            end
         end
     end
-    -- players
-    if C.get("espplayers") then
+    if C.get("EspFruits") then scan({ "Fruit" }, Color3.fromRGB(255, 200, 90)) end
+    if C.get("EspChests") then scan({ "Chest", "chest" }, Color3.fromRGB(255, 255, 160)) end
+    if C.get("EspFlowers") then scan({ "Flower", "flower" }, Color3.fromRGB(200, 120, 255)) end
+    if C.get("EspIslands") then
+        local w = workspace:FindFirstChild("_WorldOrigin")
+        local loc = w and w:FindFirstChild("Locations")
+        if loc then
+            for _, i in ipairs(loc:GetChildren()) do
+                local part = i.PrimaryPart or i:FindFirstChildWhichIsA("BasePart")
+                if part then
+                    seen[i] = true
+                    tag(i, part, i.Name, Color3.fromRGB(120, 220, 220))
+                end
+            end
+        end
+    end
+    if wantPlayers then
         for _, plr in ipairs(U.Players:GetPlayers()) do
             if plr ~= U.LP and plr.Character then
                 local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
@@ -1269,17 +1812,54 @@ function M.lowend()
     end
 end
 
+-- weapon skills: the game binds Z/X/C/V/F; VirtualUser + SendKeyEvent fires them.
+-- AimBot first, or the skill fires into empty air.
+local KEYS = { Z = Enum.KeyCode.Z, X = Enum.KeyCode.X, C = Enum.KeyCode.C,
+               V = Enum.KeyCode.V, F = Enum.KeyCode.F }
+
+function M.skills()
+    if not U.alive() then return end
+    local mob = nil
+    for _, k in ipairs({ "SkillZ", "SkillX", "SkillC", "SkillV", "SkillF" }) do
+        if C.get(k) then mob = U.nearestMob() break end
+    end
+    if not mob then return end
+    if C.get("AimBotSkill") then
+        local root, p = U.root(), U.mobPos(mob)
+        if root and p then root.CFrame = CFrame.lookAt(root.Position, p.Position) end
+    end
+    for name, code in pairs(KEYS) do
+        if C.get("Skill" .. name) then
+            pcall(function()
+                vu:CaptureController()
+                UIS:SendKeyEvent(true, code, false)
+                UIS:SendKeyEvent(false, code, false)
+            end)
+        end
+    end
+end
+
+-- no camera shake: the source zeroes the shake amplitude while a toggle is on
+function M.noShake()
+    local cam = workspace.CurrentCamera
+    if not cam then return end
+    if C.get("PanicMode") then
+        local c = U.char()
+        local shake = c and c:FindFirstChild("CameraShaker")
+        if shake then pcall(function() shake:Destroy() end) end
+    end
+end
+
 -- anti-AFK: fires the idle event the server watches
 function M.antiafk()
-    if not C.get("antiafk") then return end
-    local vu = game:GetService("VirtualUser")
+    if not C.get("AntiAFK") then return end
     vu:CaptureController()
     vu:ClickButton2(Vector2.new(0, 0))
 end
 
 -- walk on water: a platform under the player while moving
 function M.water()
-    local on = C.get("walkonwater")
+    local on = C.get("WalkOnWater")
     local r = U.root()
     if not r then return end
     local p = r:FindFirstChild("RPSWater")
@@ -1302,30 +1882,13 @@ end
 function M.tick(_U, _C)
     M.aura()
     M.esp()
+    M.skills()
+    M.noShake()
     M.water()
     M.antiafk()
 end
 
 -- actions (buttons) --------------------------------------------------------
-function M.serverHop()
-    local Http = game:GetService("HttpService")
-    local TS = game:GetService("TeleportService")
-    local ok, body = pcall(function()
-        return game:HttpGet(string.format(
-            "https://games.roblox.com/v1/games/%d/servers/Public?limit=100", game.PlaceId))
-    end)
-    if not ok or not body then return U.notify("server list blocked") end
-    local data = Http:JSONDecode(body)
-    for _, s in ipairs(data.data or {}) do
-        if s.playing < s.maxPlayers and s.id ~= game.JobId then
-            U.notify("hopping...")
-            TS:TeleportToPlaceInstance(game.PlaceId, s.id, U.LP)
-            return
-        end
-    end
-    U.notify("no free server, retrying")
-end
-
 function M.redeemCodes()
     if not U.Redeem then return U.notify("no Redeem remote") end
     local n = 0
@@ -1372,22 +1935,13 @@ return M
 ]==]
 FILES["src/pages.lua"] = [==[
 --[[ pages.lua - every tab. UI only: each row writes into the shared config store
-     that farm.lua / extras.lua read each tick. ]]
+     that farm.lua / quests.lua / extras.lua read each tick.
+
+     Feature switches live in the Features tab; the source hub had them spread over
+     its own tabs, but one flat list is easier to search on a phone. ]]
 
 local M = {}
 local U, C, UI, win, D
-
-local function cycle(key, list, label)
-    local cur = C.get(key)
-    for i, v in ipairs(list) do
-        if v == cur then
-            C.set(key, list[i % #list + 1])
-            return U.notify(label .. ": " .. tostring(C.get(key)))
-        end
-    end
-    C.set(key, list[1])
-    U.notify(label .. ": " .. tostring(list[1]))
-end
 
 function M.init(_U, _C, _UI, _w, deps)
     U, C, UI, win = _U, _C, _UI, _w
@@ -1395,35 +1949,36 @@ function M.init(_U, _C, _UI, _w, deps)
 
     -- FARM ------------------------------------------------------------------
     local p = win:tab("Farm")
-    local c = win:card(p, "Auto Farm Level")
-    win:toggle(c, "Auto Farm Level", "accept the quest, travel, bring, hit", "farm")
-    win:toggle(c, "Auto Quest", "accept the quest automatically", "autoquest")
+    local c = win:card(p, "Auto Farm")
+    win:toggle(c, "Auto Farm Level", "accept the quest, travel, bring, hit", "AutoFarm_Level")
     win:dropdown(c, "Mode", "farmmode", { "level", "nearest", "boss", "mastery" })
-    win:dropdown(c, "Weapon", "farmtool", { "Melee", "Sword", "Gun", "Blox Fruit" })
-    win:slider(c, "Farm Distance", "farmdistance", 5, 60, 1)
+    win:dropdown(c, "Weapon", "FarmTool", { "Melee", "Sword", "Gun", "Blox Fruit" })
+    win:slider(c, "Farm Distance", "FarmPos", 5, 60, 1)
     win:toggle(c, "Orbit Target", "circle the mob so hits keep landing", "orbit")
-    win:toggle(c, "Bring Mobs", "pin mobs + enlarge hitbox", "bring")
-    win:slider(c, "Bring Distance", "bringdist", 50, 500, 10)
+    win:toggle(c, "Bring Mobs", "pin mobs + enlarge hitbox", "BringMobs")
+    win:slider(c, "Bring Distance", "BringMobsDistance", 50, 500, 10)
+    win:toggle(c, "Auto Farm Nearest", "no quest, closest mob", "AutoFarmNearest")
 
     c = win:card(p, "Travel")
     win:toggle(c, "Tween Travel", "smooth flight instead of instant teleport", "tween")
-    win:slider(c, "Tween Speed", "tweenspeed", 60, 400, 10)
-    win:toggle(c, "Portal Hop", "hard teleport when far (faster, riskier)", "portalhop")
+    win:slider(c, "Tween Speed", "TweenSpeed", 60, 400, 10)
     win:toggle(c, "Fly / Hover", "hold position above the mob", "hover")
     win:toggle(c, "NoClip", nil, "noclip")
     win:button(c, "STOP TWEEN", "kill-switch for a stuck tween", function() U.stopTween() end)
 
     c = win:card(p, "Boss")
-    win:dropdown(c, "Boss List", "bossselected", D and D.bossList[U.sea] or {})
-    win:toggle(c, "Take Boss Quest", "accept the boss quest first", "bossquest")
+    win:dropdown(c, "Boss List", "BossSelected", D and D.bossList[U.sea] or {})
+    win:toggle(c, "Auto Farm Boss Selected", nil, "boss_BossSelected")
+    win:toggle(c, "Auto Farm All Boss", "sweeps the boss list", "KillAllBosses")
+    win:toggle(c, "Take Boss Quest", "accept the boss quest first", "TakeQuestBoss")
 
     -- COMBAT ----------------------------------------------------------------
     p = win:tab("Combat")
     c = win:card(p, "Attack")
-    win:toggle(c, "Fast Attack", "zero cooldowns, real credited M1", "fastattack")
-    win:toggle(c, "Auto Click", nil, "autoclick")
-    win:slider(c, "Attack Range", "attackdist", 20, 200, 5)
-    win:slider(c, "Click Delay", "clickdelay", 0.05, 1, 0.01)
+    win:toggle(c, "Fast Attack", "zero cooldowns, real credited M1", "FastAttack")
+    win:toggle(c, "Auto Click", nil, "AutoClick")
+    win:slider(c, "Hitbox Range", "hitbox", 20, 200, 5)
+    win:slider(c, "Click Delay", "AutoClickDelay", 0.05, 1, 0.01)
     win:button(c, "Attack Method", "tap to switch m1 <-> net remote", function()
         C.set("method", C.get("method") == "m1" and "net" or "m1")
         U.notify("attack method: " .. C.get("method"))
@@ -1434,38 +1989,105 @@ function M.init(_U, _C, _UI, _w, deps)
     win:slider(c, "Aura Range", "aura", 40, 300, 10)
     win:label(c, "Instakill is not offered: writing Health client-side gives no money/exp.", Color3.fromRGB(230, 150, 150))
 
+    c = win:card(p, "Skills")
+    win:toggle(c, "AimBot Skill Enemy", "face the mob before firing skills", "AimBotSkill")
+    win:toggle(c, "Skill Z", nil, "SkillZ")
+    win:toggle(c, "Skill X", nil, "SkillX")
+    win:toggle(c, "Skill C", nil, "SkillC")
+    win:toggle(c, "Skill V", nil, "SkillV")
+    win:toggle(c, "Skill F", nil, "SkillF")
+    win:slider(c, "Skill Health Cutoff", "HealthSkill", 10, 100, 5)
+
     c = win:card(p, "Haki / Heal")
-    win:toggle(c, "Auto Buso", nil, "autobuso")
-    win:toggle(c, "Auto Ken", nil, "autoken")
+    win:toggle(c, "Auto Buso", nil, "AutoHaki")
+    win:toggle(c, "Auto Ken", nil, "AutoKenV2")
     win:toggle(c, "Heal When Low", "under 30% HP", "heal")
 
-    -- MASTERY / STATS -------------------------------------------------------
+    -- STATS ----------------------------------------------------------------
     p = win:tab("Stats")
     c = win:card(p, "Mastery")
-    win:toggle(c, "Auto Farm Mastery", "grind the equipped tool", "automastery")
-    win:dropdown(c, "Tool", "masterytool", { "Blox Fruit", "Melee", "Sword", "Gun" })
-    win:slider(c, "Stop At", "masteryvalue", 100, 600, 50)
+    win:toggle(c, "Auto Farm Mastery", "grind the equipped tool", "AutoFarmMastery")
+    win:dropdown(c, "Tool", "ToolMastery", { "Blox Fruit", "Melee", "Sword", "Gun" })
+    win:slider(c, "Stop At", "AutoMasteryValue", 100, 600, 50)
     c = win:card(p, "Stat Points")
-    win:toggle(c, "Auto Stat Point", "spend points as they arrive", "autostat")
-    win:dropdown(c, "Stat", "stat", { "Melee", "Sword", "Gun", "Defense", "Blox Fruit" })
-    win:slider(c, "Points", "statpoints", 1, 100, 1)
+    win:toggle(c, "Auto Stats", "spend points as they arrive", "AutoStats")
+    win:button(c, "Stat", "tap to cycle Melee/Sword/Gun/Defense/Blox Fruit", function()
+        local order = { "Melee", "Sword", "Gun", "Defense", "Blox Fruit" }
+        for i, s in ipairs(order) do
+            if s == C.get("stat") then C.set("stat", order[i % #order + 1]) return U.notify("stat: " .. C.get("stat")) end
+        end
+        C.set("stat", "Melee")
+    end)
     win:button(c, "Check Boost", "read your current boosts", function()
         local r = U.F("CheckBoost")
         U.log("i", "boost: " .. tostring(r))
         U.notify("boost -> Log tab")
     end)
-
-    -- RACE / MISC -----------------------------------------------------------
     c = win:card(p, "Race")
-    win:toggle(c, "Auto Race V2", "run the Alchemist race quest", "autoracev2")
+    win:toggle(c, "Auto Race V2", "the Alchemist race quest", "chain_Race V2")
     win:button(c, "Race Reroll", "BlackbeardReward reroll 1", function() U.F("BlackbeardReward", "Reroll", "1") end)
     win:button(c, "Race Reroll (2)", "second reroll slot", function() U.F("BlackbeardReward", "Reroll", "2") end)
     win:button(c, "Stat Refund", "BlackbeardReward refund", function() U.F("BlackbeardReward", "Refund", "1") end)
 
+    -- FEATURES --------------------------------------------------------------
+    p = win:tab("Features")
+    c = win:card(p, "Bosses")
+    for _, name in ipairs({ "The Saw", "Thunder God", "Cursed Captain", "Don Swan",
+                           "Darkbeard", "rip_indra True Form", "Soul Reaper", "Order" }) do
+        win:toggle(c, "Auto " .. name, nil, "boss_" .. name)
+    end
+
+    c = win:card(p, "Mobs / Materials")
+    win:toggle(c, "Auto Farm Bone", nil, "mob_Bone")
+    win:toggle(c, "Auto Farm Ectoplasm", nil, "mob_Ectoplasm")
+    win:toggle(c, "Auto Farm Candy", nil, "mob_Candy")
+    win:toggle(c, "Auto Pirates Sea", nil, "mob_Pirates Sea")
+    win:toggle(c, "Auto Factory", nil, "mob_Factory")
+    win:toggle(c, "Auto Rengoku", nil, "mob_Rengoku")
+    win:toggle(c, "Auto Tushita", nil, "mob_Tushita")
+    win:dropdown(c, "Material", "MaterialSelected", D and D.materials[U.sea] or {})
+    win:toggle(c, "Auto Farm Material", "uses the material above", "mob_Material")
+
+    c = win:card(p, "Quests / Unlocks")
+    for _, key in ipairs({ "Ken V2", "Musketeer Hat", "Saber", "Rainbow Haki",
+                           "Soul Guitar", "Second Sea", "Third Sea" }) do
+        win:toggle(c, "Auto " .. key, nil, "chain_" .. key)
+    end
+
+    c = win:card(p, "Fighting Styles")
+    for _, f in ipairs(D and D.fighters or {}) do
+        win:toggle(c, "Auto " .. f[1], "mastery then buy", "fighter_" .. f[1])
+    end
+
+    c = win:card(p, "Fruit / Chest")
+    win:toggle(c, "Teleport To Fruit", "walk to any fruit on the ground", "TeleportToFruit")
+    win:toggle(c, "Auto Store Fruits", nil, "AutoStoreFruits")
+    win:toggle(c, "Auto Chest Tween", nil, "AutoChestTween")
+    win:toggle(c, "Auto Chest Bypass", nil, "AutoChestBypass")
+
+    c = win:card(p, "Server")
+    win:toggle(c, "Auto Elite Hunter", "hops until the elite boss is up", "chain_Elite Hunter")
+    win:toggle(c, "Hop If Don Swan", nil, "AutoDonSwanHop")
+    win:toggle(c, "Hop If Elite Hunter", nil, "AutoEliteHunterHop")
+    win:toggle(c, "Hop If Rengoku", nil, "AutoRengokuHop")
+    win:toggle(c, "Hop If Tushita", nil, "AutoTushitaHop")
+    win:toggle(c, "Hop If Rainbow Haki", nil, "RainbowHakiHop")
+    win:button(c, "Server Hop", "jump to a less full server", function() M.serverHop() end)
+
+    c = win:card(p, "Misc Switches")
+    win:toggle(c, "Attack Distance", "widen hitboxMagnitude", "AttackDistance")
+    win:toggle(c, "Auto Buy Chip", "raid chip", "AutoBuyChip")
+    win:toggle(c, "Auto Farm Raid", nil, "AutoFarmRaid")
+    win:toggle(c, "Auto Buy Haki Color", nil, "AutoBuyHakiColor")
+    win:toggle(c, "Auto Legendary Sword", nil, "AutoLegendarySword")
+    win:toggle(c, "Auto True Triple Katana", nil, "AutoTTK")
+    win:toggle(c, "Auto Cursed Dual Katana", "long chain, needs Tushita + Yama", "AutoCursedDualKatana")
+    win:toggle(c, "Auto Bartilo Quest", nil, "AutoBartiloQuest")
+    win:toggle(c, "Auto Don Swan Hop", nil, "AutoDonSwanHop")
+
     -- TELEPORT --------------------------------------------------------------
     p = win:tab("Teleport")
     c = win:card(p, "Islands")
-    -- read the live registry at build time; it is dynamic per sea, so never hardcode
     local islands = {}
     do
         local w = workspace:FindFirstChild("_WorldOrigin")
@@ -1492,20 +2114,16 @@ function M.init(_U, _C, _UI, _w, deps)
             U.notify("paste a jobId first")
         end
     end)
-    win:button(c, "Server Hop", "jump to a less full server", function() M.serverHop() end)
 
     -- SHOP ------------------------------------------------------------------
     p = win:tab("Shop")
     c = win:card(p, "Codes")
     win:button(c, "Redeem All Codes", "sends the current public code list", function() M.redeemCodes() end)
-
     c = win:card(p, "Fighting Styles")
     for _, s in ipairs({ "Black Leg", "Electro", "Fishman Karate", "Dragon Claw", "Superhuman",
                          "Death Step", "Sharkman Karate", "Electric Claw", "Dragon Talon",
                          "Godhuman", "Sanguine Art" }) do
-        win:button(c, "Buy " .. s, nil, function()
-            U.F(s, true) U.F(s) U.notify("buying " .. s)
-        end)
+        win:button(c, "Buy " .. s, nil, function() U.F(s, true) U.F(s) U.notify("buying " .. s) end)
     end
     c = win:card(p, "Swords")
     for _, s in ipairs({ "Katana", "Cutlass", "Dual Katana", "Iron Mace", "Triple Katana",
@@ -1521,26 +2139,76 @@ function M.init(_U, _C, _UI, _w, deps)
             U.F("Buy" .. s:gsub("[%s%-]", "")) U.notify("buying " .. s)
         end)
     end
+    c = win:card(p, "Race / Misc")
+    win:button(c, "Ghoul Race", nil, function() U.F("GhoulTrainer", "Buy") end)
+    win:button(c, "Cyborg Race", nil, function() U.F("CyborgTrainer", "Buy") end)
+    win:button(c, "Devil Fruit Shop", nil, function() U.F("Cousin", "Buy") end)
 
     -- VISUAL ----------------------------------------------------------------
     p = win:tab("Visual")
     c = win:card(p, "ESP")
-    win:toggle(c, "ESP Mobs", "name tags on enemies", "esp")
-    win:toggle(c, "ESP Players", nil, "espplayers")
+    win:toggle(c, "ESP Fruits", nil, "EspFruits")
+    win:toggle(c, "ESP Chests", nil, "EspChests")
+    win:toggle(c, "ESP Flowers", nil, "EspFlowers")
+    win:toggle(c, "ESP Islands", nil, "EspIslands")
+    win:toggle(c, "ESP Players", nil, "EspPlayer")
     c = win:card(p, "Performance")
     win:toggle(c, "Low-End Mode", "kills particles + shadows (mobile fps)", "lowend")
-    win:toggle(c, "Anti-AFK", nil, "antiafk")
-    win:toggle(c, "Walk On Water", "platform under your feet", "walkonwater")
-    win:toggle(c, "Heal When Low", "under 30% HP", "heal")
+    win:toggle(c, "Anti-AFK", nil, "AntiAFK")
+    win:toggle(c, "Walk On Water", "platform under your feet", "WalkOnWater")
+    win:toggle(c, "Panic Mode", "clears camera shake", "PanicMode")
 
     -- MISC ------------------------------------------------------------------
     p = win:tab("Misc")
-    c = win:card(p, "Log Webhook")
+    c = win:card(p, "Webhook")
     win:label(c, "paste a Discord webhook URL here, then Log tab > Send")
     win:textbox(c, "Webhook", "webhook", "https://discord.com/api/webhooks/...")
     c = win:card(p, "Credits")
-    win:label(c, "use an alt account. this is a cheat.")
+    win:label(c, "Raf's Personal Script - use an alt account")
     return M
+end
+
+-- actions -------------------------------------------------------------------
+function M.serverHop()
+    local Http = game:GetService("HttpService")
+    local TS = game:GetService("TeleportService")
+    local ok, body = pcall(function()
+        return game:HttpGet(string.format("https://games.roblox.com/v1/games/%d/servers/Public?limit=100", game.PlaceId))
+    end)
+    if not ok or not body then return U.notify("server list blocked") end
+    for _, s in ipairs(Http:JSONDecode(body).data or {}) do
+        if s.playing < s.maxPlayers and s.id ~= game.JobId then
+            U.notify("hopping...")
+            TS:TeleportToPlaceInstance(game.PlaceId, s.id, U.LP)
+            return
+        end
+    end
+    U.notify("no free server")
+end
+
+function M.redeemCodes()
+    if not U.Redeem then return U.notify("no Redeem remote") end
+    local n = 0
+    for _, code in ipairs(D and D.codes or {}) do
+        U.remote(U.Redeem, true, code)
+        n = n + 1
+    end
+    U.notify(n .. " codes sent")
+end
+
+function M.teleportIsland()
+    local w = workspace:FindFirstChild("_WorldOrigin")
+    local loc = w and w:FindFirstChild("Locations")
+    if not loc then return U.notify("no Locations registry") end
+    local island = loc:FindFirstChild(C.get("island") or "")
+    if not island then
+        local names = {}
+        for _, i in ipairs(loc:GetChildren()) do table.insert(names, i.Name) end
+        U.log("i", "islands: " .. table.concat(names, ", "))
+        return U.notify("pick an island in the dropdown")
+    end
+    local part = island.PrimaryPart or island:FindFirstChildWhichIsA("BasePart")
+    if part then U.tp(part.CFrame * CFrame.new(0, 30, 0)) end
 end
 
 return M
@@ -1672,7 +2340,7 @@ debug = { getupvalues = function() return {} end, traceback = function() return 
 
 local loaded, okCount, failCount = {}, 0, 0
 for _, f in ipairs({ "src/util.lua", "src/config.lua", "src/data.lua", "src/ui.lua",
-                     "src/farm.lua", "src/extras.lua", "src/pages.lua", "src/home.lua" }) do
+                     "src/farm.lua", "src/quests.lua", "src/extras.lua", "src/pages.lua", "src/home.lua" }) do
     local chunk, err = loadstring(FILES[f], f)
     if not chunk then
         print("[x] " .. f .. " compile: " .. tostring(err)) failCount = failCount + 1
@@ -1714,6 +2382,30 @@ for name, row in pairs(D.bosses) do
     bn = bn + 1
 end
 assert(#D.codes > 0, "no codes")
+local bn2 = 0
+for _ in pairs(D.bossFarms) do bn2 = bn2 + 1 end
+for k, v in pairs(D.bossFarms) do assert(v[2] ~= nil, "bossFarm " .. k .. " has no fallback CFrame") end
+local sn = 0
+for k, v in pairs(D.spawners) do sn = sn + 1 assert(type(v[1]) == "table", "spawner " .. k .. " malformed") end
+local cn = 0
+for k, v in pairs(D.chains) do
+    cn = cn + 1
+    assert(#v > 0, "chain " .. k .. " empty")
+    for i, st in ipairs(v) do
+        assert(type(st.text) == "string", "chain " .. k .. " step " .. i .. " has no text")
+        assert(st.cf or st.mobs or st.remote or st.level, "chain " .. k .. " step " .. i .. " does nothing")
+    end
+end
+local function matCount(sea)
+    local n = 0
+    for _ in pairs(D.materials2[sea] or {}) do n = n + 1 end
+    assert(n > 0, "no materials for sea " .. sea)
+    return n
+end
+local fn2 = 0
+for _, f in ipairs(D.fighters) do fn2 = fn2 + 1 assert(f[2] and f[3] and f[4], "fighter row malformed") end
+print(string.format("[ok] extras data: %d bossFarms, %d spawners, %d chains, %d fighters, materials sea1=%d sea2=%d sea3=%d",
+    bn2, sn, cn, fn2, matCount(1), matCount(2), matCount(3)))
 local fcount = 0
 for _ in pairs(D.fruits) do fcount = fcount + 1 end
 assert(fcount > 0, "no fruits")
@@ -1730,7 +2422,7 @@ local okU, errU = pcall(function() win = UI.new(U, C) end)
 assert(okU, "UI.new: " .. tostring(errU))
 print("[ok] UI.new built, first tab: " .. tostring(win.current))
 
-for _, pair in ipairs({ { "src/farm.lua", "farm" }, { "src/extras.lua", "extras" } }) do
+for _, pair in ipairs({ { "src/farm.lua", "farm" }, { "src/quests.lua", "quests" }, { "src/extras.lua", "extras" } }) do
     local m = loaded[pair[1]]
     local ok, err = pcall(function() m.init(U, C, UI, win, { D = D }) end)
     if ok then print("[ok] init " .. pair[2]) else print("[x] init " .. pair[2] .. ": " .. tostring(err)) failCount = failCount + 1 end

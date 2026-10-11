@@ -218,6 +218,120 @@ D.codes = {
     "NEWTROLL", "KITT_RESET", "Sub2Fer999", "Magicbus", "kittgaming", "SECRET_ADMIN", "EXP_5B", "CONTROL", "UPDATE11", "XMASEXP", "1BILLION", "ShutDownFix2", "UPD14", "STRAWHATMAINE", "TantaiGaming", "Colosseum", "Axiore", "Sub2Daigrock", "Sky Island 3", "Sub2OfficialNoobie", "SUB2NOOBMASTER123", "THEGREATACE", "Fountain City", "BIGNEWS", "FUDD10", "SUB2GAMERROBOT_EXP1", "UPD15", "2BILLION", "UPD16", "3BVISITS", "Starcodeheo", "Bluxxy", "DRAGONABUSE", "Sub2CaptainMaui", "DEVSCOOKING", "Enyu_is_Pro", "JCWK", "Starcodeheo", "Bluxxy", "fudd10_v2", "SUB2GAMERROBOT_EXP1", "Sub2NoobMaster123", "Sub2UncleKizaru", "Sub2Daigrock", "Axiore", "TantaiGaming", "StrawHatMaine"
 }
 
+
+--[[ materials[sea][name] = { mobs, farmCF } -- mob farm spots for each material ]]
+D.materials2 = {}
+D.materials2[1] = {
+    ["Angel Wings"] = { { "Royal Soldier", "Royal Squad" }, CFrame.new(-7742, 5634, -1564) },
+    ["Leather + Scrap Metal"] = { { "Pirate", "Brute" }, CFrame.new(-1257, 54, 4091) },
+    ["Magma Ore"] = { { "Military Soldier" }, CFrame.new(-5408, 11, 8456) },
+    ["Fish Tail"] = { { "Fishman Warrior" }, CFrame.new(60931, 19, 1574) }
+}
+D.materials2[2] = {
+    ["Leather + Scrap Metal"] = { { "Scrap Metal" }, CFrame.new(-1026, 73, 1375) },
+    ["Magma Ore"] = { { "Lava Pirate" }, CFrame.new(-5241, 50, -4713) },
+    ["Mystic Droplet"] = { { "Water Fighter" }, CFrame.new(-3350, 282, -10527) },
+    ["Radiactive Material"] = { { "Factory Staff" }, CFrame.new(-73, 149, -112) },
+    ["Vampire Fang"] = { { "Vampire" }, CFrame.new(-6030, 6, -1281) }
+}
+D.materials2[3] = {
+    ["Leather + Scrap Metal"] = { { "Pirate Millionaire" }, CFrame.new(-364, 116, 5692) },
+    ["Fish Tail"] = { { "Fishman Captain", "Fishman Raider" }, CFrame.new(-10679, 398, -8975) },
+    ["Gunpowder"] = { { "Pistol Billionaire" }, CFrame.new(-394, 135, 5981) },
+    ["Mini Tusk"] = { { "Mythological Pirate" }, CFrame.new(-13510, 584, -6986) },
+    ["Conjured Cocoa"] = { { "Cocoa Warrior", "Chocolate Bar Battler" }, CFrame.new(400, 81, -12257) },
+    ["Dragon Scale"] = { { "Dragon Crew Archer" }, CFrame.new(6689, 378, 331) }
+}
+
+
+--[[ spawner remotes: some bosses only appear after a remote is spammed.
+     values are the CommF_ argument lists, called every `interval` seconds. ]]
+D.spawners = {
+    ["Cake Prince"]  = { { "CakePrinceSpawner" }, 1 },
+    ["Dough King"]   = { { "SweetChaliceNpc" }, 2 },
+    ["Elite Hunter"] = { { "EliteHunter" }, 3 },
+    ["Ken V2"]       = { { "CitizenQuestProgress", "Citizen" }, 1 },
+    ["Musketeer Hat"]= { { "CitizenQuestProgress", "Citizen" }, 1 },
+    ["Saber"]        = { { "ProQuestProgress", "RichSon" }, 2 },
+    ["Soul Guitar"]  = { { "GuitarPuzzleProgress", "Ghost" }, 2 },
+    ["Race V2"]      = { { "Alchemist", "1" }, 1 },
+    ["Second Sea"]   = { { "DressrosaQuestProgress", "Detective" }, 2 },
+    ["Third Sea"]    = { { "ZQuestProgress", "Check" }, 2, { "TravelZou" } },
+}
+
+--[[ bossFarms: the simple "kill this boss, else stand here" loops, one row each.
+     { mobs, fallbackCF, tool|nil, toolCF|nil, spawner|nil, hopKey|nil } ]]
+D.bossFarms = {
+    ["The Saw"]        = { { "The Saw" }, CFrame.new(-690, 15, 1583) },
+    ["Thunder God"]    = { { "Thunder God" }, CFrame.new(-7739, 5657, -2289) },
+    ["Cursed Captain"] = { { "Cursed Captain" }, CFrame.new(912, 186, 33591) },
+    ["Don Swan"]       = { { "Don Swan" }, CFrame.new(2272, 15, 759), nil, nil, nil, "AutoDonSwanHop" },
+    ["Darkbeard"]      = { { "Darkbeard" }, CFrame.new(3746, 13, -3632), "Fist of Darkness", CFrame.new(3779, 16, -3500) },
+    ["rip_indra True Form"] = { { "rip_indra True Form" }, CFrame.new(-5333, 424, -2673), "God's Chalice", CFrame.new(-5561, 314, -2663) },
+    ["Soul Reaper"]    = { { "Soul Reaper" }, CFrame.new(-9529, 316, 6712), "Hallow Essence" },
+    ["Order"]          = { { "Order" }, CFrame.new(-6300, 16, -4997) },
+    ["Bone"]           = { { "Reborn Skeleton", "Living Zombie", "Demonic Soul", "Posessed Mummy" }, CFrame.new(-9513, 164, 5786) },
+    ["Ectoplasm"]      = { { "Ship Deckhand", "Ship Engineer", "Ship Steward", "Ship Officer" }, CFrame.new(912, 186, 33591) },
+    ["Candy"]          = { { "Candy Pirate", "Snow Demon" }, CFrame.new(-9513, 164, 5786) },
+    ["Pirates Sea"]    = { { "Pirate", "Brute" }, CFrame.new(-5556, 314, -2988), nil, nil, nil, nil, 700 },
+    ["Factory"]        = { { "Factory Staff" }, CFrame.new(410, 200, -414), nil, nil, nil, nil, nil, true },
+    ["Rengoku"]        = { { "Arctic Warrior", "Snow Lurker" }, CFrame.new(5707, 28, -6402) },
+    ["Tushita"]        = { { "Cursed Skeleton", "Cursed Skeleton Warrior" }, CFrame.new(-9513, 164, 5786) },
+}
+
+--[[ fighters: style -> { mobs, farmCF, style } -- buy the style once mastery is done ]]
+D.fighters = {
+    { "Death Step",        { "Arctic Warrior", "Snow Lurker" }, CFrame.new(5707, 28, -6402), "Death Step" },
+    { "Electric Claw",     { "Dragon Crew Archer", "Dragon Crew Warrior" }, CFrame.new(6588, 170, -1104), "Electric Claw" },
+    { "Sharkman Karate",   { "Fishman Raider", "Fishman Captain" }, CFrame.new(-10679, 398, -8975), "Sharkman Karate" },
+    { "Dragon Talon",      { "Dragon Crew Warrior", "Dragon Crew Archer" }, CFrame.new(6588, 170, -1104), "Dragon Talon" },
+    { "Superhuman",        { "Military Soldier", "Military Spy" }, CFrame.new(-5408, 11, 8456), "Superhuman" },
+    { "Godhuman",          { "Fishman Raider", "Fishman Captain" }, CFrame.new(-10679, 398, -8975), "Godhuman" },
+}
+
+--[[ questChains: the multi-step unlocks, ported step-by-step from the source.
+     Each step: { text, cf, tool|nil, quest|nil, mobs|nil, remote|nil, level|nil } ]]
+D.chains = {
+    ["Ken V2"] = {
+        { text = "buy the three fruits from the Citizen", cf = CFrame.new(-12445, 332, -7676), remote = { "CitizenQuest", 1 } },
+        { text = "kill Forest Pirates for the Citizen quest", cf = CFrame.new(-12512, 340, -9872), mobs = { "Forest Pirate" }, quest = "Forest Pirate" },
+        { text = "hand in at the Citizen", cf = CFrame.new(-12445, 332, -7676), remote = { "CitizenQuestProgress", "Citizen" } },
+    },
+    ["Musketeer Hat"] = {
+        { text = "kill Pirate Millionaire for the Citizen", cf = CFrame.new(-13393, 319, -8423), mobs = { "Pirate Millionaire" } },
+        { text = "hand in at the Citizen", cf = CFrame.new(-12512, 340, -9872), remote = { "CitizenQuestProgress", "Citizen" } },
+    },
+    ["Saber"] = {
+        { text = "talk to the Rich Son", cf = CFrame.new(-1461, 30, -51), remote = { "ProQuestProgress", "RichSon" } },
+        { text = "kill the mobs, then return", cf = CFrame.new(-1408, 30, 3), remote = { "ProQuestProgress", "SickMan" } },
+        { text = "buy the Relic and open the door", cf = CFrame.new(1113, 5, 4352), tool = "Relic" },
+    },
+    ["Rainbow Haki"] = {
+        { text = "kill the five bosses", mobs = { "Stone", "Island Empress", "Kilo Admiral", "Captain Elephant", "Beautiful Pirate" } },
+        { text = "bet at the Horned Man", cf = CFrame.new(-1049, 40, 6791), remote = { "HornedMan", "Bet" } },
+    },
+    ["Soul Guitar"] = {
+        { text = "buy the Soul Guitar", cf = CFrame.new(-10129, 154, 5928), remote = { "soulGuitarBuy", true } },
+        { text = "finish the ghost puzzle", cf = CFrame.new(-10129, 154, 5928), tool = "Soul Guitar", remote = { "GuitarPuzzleProgress", "Ghost" } },
+    },
+    ["Race V2"] = {
+        { text = "accept the Alchemist quest", cf = CFrame.new(-2777, 73, -3570), remote = { "Alchemist", "1" } },
+        { text = "collect the flowers, then evolve", cf = CFrame.new(-2777, 73, -3570), remote = { "Alchemist", "2" } },
+    },
+    ["Second Sea"] = {
+        { text = "level 700 required", level = 700 },
+        { text = "get the Key from the Detective", cf = CFrame.new(4852, 6, 719), remote = { "DressrosaQuestProgress", "Detective" } },
+        { text = "open the door with the Key", cf = CFrame.new(1346, 37, -1329), tool = "Key" },
+        { text = "kill the Ice Admiral", mobs = { "Ice Admiral" } },
+        { text = "sail to the second sea", cf = CFrame.new(1280, 27, -1380), remote = { "TravelDressrosa" } },
+    },
+    ["Third Sea"] = {
+        { text = "level 1500 required", level = 1500 },
+        { text = "kill rip_indra", mobs = { "rip_indra" } },
+        { text = "sail to the third sea", cf = CFrame.new(0, 0, 0), remote = { "TravelZou" } },
+    },
+}
+
 -- highest row whose range contains the level ("for" is reserved, hence .at)
 function D.questAt(sea, level)
     local t = D.quests[sea]

@@ -1,8 +1,11 @@
---[[ extras.lua - combat helpers, ESP, world utilities, server hop, codes, shops.
+--[[ extras.lua - combat helpers, skills, ESP, world utilities, codes, shops.
      Each block is gated on its own toggle so the scheduler stays cheap. ]]
 
 local M = {}
 local U, C, D
+local vp = nil
+local vu = game:GetService("VirtualUser")
+local UIS = game:GetService("UserInputService")
 
 function M.init(_U, _C, _UI, _win, deps)
     U, C, D = _U, _C, deps and deps.D
@@ -20,7 +23,7 @@ function M.aura()
     if not mob then return end
     local root = U.root()
     if root then root.CFrame = U.mobPos(mob).CFrame + Vector3.new(0, 12, 0) end
-    U.equip(C.get("farmtool"))
+    U.equip(C.get("FarmTool"))
     if C.get("method") == "net" then U.netAttack(C.get("aura")) else U.attack(C.get("aura")) end
 end
 
@@ -58,21 +61,43 @@ local function tag(m, hrp, text, color)
 end
 
 function M.esp()
-    local want = C.get("esp")
-    if not want then
+    local want = C.get("EspFruits") or C.get("EspChests") or C.get("EspIslands") or C.get("EspFlowers")
+    local wantPlayers = C.get("EspPlayer")
+    if not want and not wantPlayers then
         if next(tags) then clearTags() end
         return
     end
     local seen = {}
-    for _, m in ipairs(U.mobs()) do
-        local p = U.mobPos(m)
-        if p then
-            seen[m] = true
-            tag(m, p, U.baseName(m.Name), Color3.fromRGB(255, 235, 120))
+    local function scan(names, color, isTool)
+        local root = workspace
+        for _, p in ipairs(root:GetChildren()) do
+            local hit = false
+            for _, n in ipairs(names) do
+                if string.find(p.Name, n) then hit = true break end
+            end
+            if hit and p:IsA("BasePart") then
+                seen[p] = true
+                tag(p, p, p.Name, color)
+            end
         end
     end
-    -- players
-    if C.get("espplayers") then
+    if C.get("EspFruits") then scan({ "Fruit" }, Color3.fromRGB(255, 200, 90)) end
+    if C.get("EspChests") then scan({ "Chest", "chest" }, Color3.fromRGB(255, 255, 160)) end
+    if C.get("EspFlowers") then scan({ "Flower", "flower" }, Color3.fromRGB(200, 120, 255)) end
+    if C.get("EspIslands") then
+        local w = workspace:FindFirstChild("_WorldOrigin")
+        local loc = w and w:FindFirstChild("Locations")
+        if loc then
+            for _, i in ipairs(loc:GetChildren()) do
+                local part = i.PrimaryPart or i:FindFirstChildWhichIsA("BasePart")
+                if part then
+                    seen[i] = true
+                    tag(i, part, i.Name, Color3.fromRGB(120, 220, 220))
+                end
+            end
+        end
+    end
+    if wantPlayers then
         for _, plr in ipairs(U.Players:GetPlayers()) do
             if plr ~= U.LP and plr.Character then
                 local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
@@ -112,17 +137,54 @@ function M.lowend()
     end
 end
 
+-- weapon skills: the game binds Z/X/C/V/F; VirtualUser + SendKeyEvent fires them.
+-- AimBot first, or the skill fires into empty air.
+local KEYS = { Z = Enum.KeyCode.Z, X = Enum.KeyCode.X, C = Enum.KeyCode.C,
+               V = Enum.KeyCode.V, F = Enum.KeyCode.F }
+
+function M.skills()
+    if not U.alive() then return end
+    local mob = nil
+    for _, k in ipairs({ "SkillZ", "SkillX", "SkillC", "SkillV", "SkillF" }) do
+        if C.get(k) then mob = U.nearestMob() break end
+    end
+    if not mob then return end
+    if C.get("AimBotSkill") then
+        local root, p = U.root(), U.mobPos(mob)
+        if root and p then root.CFrame = CFrame.lookAt(root.Position, p.Position) end
+    end
+    for name, code in pairs(KEYS) do
+        if C.get("Skill" .. name) then
+            pcall(function()
+                vu:CaptureController()
+                UIS:SendKeyEvent(true, code, false)
+                UIS:SendKeyEvent(false, code, false)
+            end)
+        end
+    end
+end
+
+-- no camera shake: the source zeroes the shake amplitude while a toggle is on
+function M.noShake()
+    local cam = workspace.CurrentCamera
+    if not cam then return end
+    if C.get("PanicMode") then
+        local c = U.char()
+        local shake = c and c:FindFirstChild("CameraShaker")
+        if shake then pcall(function() shake:Destroy() end) end
+    end
+end
+
 -- anti-AFK: fires the idle event the server watches
 function M.antiafk()
-    if not C.get("antiafk") then return end
-    local vu = game:GetService("VirtualUser")
+    if not C.get("AntiAFK") then return end
     vu:CaptureController()
     vu:ClickButton2(Vector2.new(0, 0))
 end
 
 -- walk on water: a platform under the player while moving
 function M.water()
-    local on = C.get("walkonwater")
+    local on = C.get("WalkOnWater")
     local r = U.root()
     if not r then return end
     local p = r:FindFirstChild("RPSWater")
@@ -145,30 +207,13 @@ end
 function M.tick(_U, _C)
     M.aura()
     M.esp()
+    M.skills()
+    M.noShake()
     M.water()
     M.antiafk()
 end
 
 -- actions (buttons) --------------------------------------------------------
-function M.serverHop()
-    local Http = game:GetService("HttpService")
-    local TS = game:GetService("TeleportService")
-    local ok, body = pcall(function()
-        return game:HttpGet(string.format(
-            "https://games.roblox.com/v1/games/%d/servers/Public?limit=100", game.PlaceId))
-    end)
-    if not ok or not body then return U.notify("server list blocked") end
-    local data = Http:JSONDecode(body)
-    for _, s in ipairs(data.data or {}) do
-        if s.playing < s.maxPlayers and s.id ~= game.JobId then
-            U.notify("hopping...")
-            TS:TeleportToPlaceInstance(game.PlaceId, s.id, U.LP)
-            return
-        end
-    end
-    U.notify("no free server, retrying")
-end
-
 function M.redeemCodes()
     if not U.Redeem then return U.notify("no Redeem remote") end
     local n = 0

@@ -85,7 +85,7 @@ if UI then
 end
 
 -- feature modules: each returns a module with optional init()/tick()
-for _, name in ipairs({ "farm", "extras" }) do
+for _, name in ipairs({ "farm", "quests", "extras" }) do
     local m = load(name)
     if m then
         U.safe("init " .. name, function()

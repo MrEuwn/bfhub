@@ -343,4 +343,46 @@ function U.autoHaki()
     U.F("Ken")
 end
 
+-- tool helpers -------------------------------------------------------------
+function U.findTool(name)
+    local c = U.char()
+    for _, src in ipairs({ c, U.LP.Backpack }) do
+        if src then
+            for _, t in ipairs(src:GetChildren()) do
+                if t:IsA("Tool") and t.Name == name then return t end
+            end
+        end
+    end
+    return nil
+end
+
+function U.hasTool(name) return U.findTool(name) ~= nil end
+
+function U.equipTool(name)
+    local hum, t = U.hum(), U.findTool(name)
+    if hum and t and t.Parent ~= U.char() then hum:EquipTool(t) end
+end
+
+-- mastery of a tool by name (the game exposes it on the tool's own value)
+function U.mastery(name)
+    local t = U.findTool(name)
+    if not t then return nil end
+    local m = t:FindFirstChild("Mastery") or t:FindFirstChild("Level")
+    return m and m.Value or nil
+end
+
+-- nearest dropped fruit on the ground
+function U.nearestFruit()
+    local r = U.root()
+    if not r then return nil end
+    local best, bd = nil, 2500
+    for _, p in ipairs(workspace:GetChildren()) do
+        if p:IsA("Tool") or string.find(p.Name, "Fruit") then
+            local d = (p.Position - r.Position).Magnitude
+            if d < bd then best, bd = p, d end
+        end
+    end
+    return best
+end
+
 return U
