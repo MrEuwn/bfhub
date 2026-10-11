@@ -296,6 +296,55 @@ function UI:label(parent, text, color)
     }, parent)
 end
 
+-- dropdown: an inline popup list. A cycle button would be cheaper but a 15-item
+-- boss list is unusable that way on a phone.
+function UI:dropdown(parent, title, key, values)
+    local f = self:row(parent, title .. ": " .. tostring(self.C.get(key)))
+    local label = f:FindFirstChildOfClass("TextLabel")
+    local btn = mk("TextButton", { Text = "", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1) }, f)
+    local open = false
+    local list
+    btn.MouseButton1Click:Connect(function()
+        if open and list then list:Destroy() list = nil open = false return end
+        open = true
+        list = mk("ScrollingFrame", {
+            Size = UDim2.new(1, -20, 0, math.min(#values * 22 + 8, 180)), BackgroundColor3 = BG,
+            BorderSizePixel = 0, ScrollBarThickness = 4, ScrollingDirection = Enum.ScrollingDirection.Y,
+            AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(0, 0, 0, 0),
+        }, parent)
+        round(list, 8) stroke(list)
+        mk("UIListLayout", { Padding = UDim.new(0, 2) }, list)
+        for _, v in ipairs(values) do
+            local b = mk("TextButton", {
+                Text = tostring(v), Font = Enum.Font.Gotham, TextSize = 11, TextColor3 = TXT,
+                BackgroundColor3 = CARD, BorderSizePixel = 0, Size = UDim2.new(1, -8, 0, 20),
+                TextXAlignment = Enum.TextXAlignment.Left,
+            }, list)
+            round(b, 4)
+            b.MouseButton1Click:Connect(function()
+                self.C.set(key, v)
+                label.Text = title .. ": " .. tostring(v)
+                if list then list:Destroy() list = nil end
+                open = false
+            end)
+        end
+    end)
+    return f
+end
+
+function UI:textbox(parent, title, key, placeholder)
+    local f = self:row(parent, title)
+    local box = mk("TextBox", {
+        Text = tostring(self.C.get(key) or ""), PlaceholderText = placeholder or "",
+        Font = Enum.Font.Gotham, TextSize = 11, TextColor3 = TXT, PlaceholderColor3 = DIM,
+        BackgroundColor3 = BG, BorderSizePixel = 0, ClearTextOnFocus = false,
+        Size = UDim2.new(1, -10, 0, 20), Position = UDim2.new(0, 0, 0, 14),
+    }, f)
+    round(box, 5) stroke(box)
+    box:GetPropertyChangedSignal("Text"):Connect(function() self.C.set(key, box.Text) end)
+    return f
+end
+
 function UI:filter(q)
     q = string.lower(q or "")
     for _, r in ipairs(self.rows) do

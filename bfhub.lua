@@ -54,24 +54,25 @@ local function load(name, deps)
         return res
     end
     table.insert(report, "[x] " .. name .. " -> " .. tostring(res))
-    warn("[BFHub] " .. name .. ": " .. tostring(res))
+    warn("[RPS] " .. name .. ": " .. tostring(res))
     return nil
 end
 
 local U = load("util")
 if not U then
     return game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "BFHub", Text = "util.lua failed - see console", Duration = 8,
+        Title = "Raf's Personal Script", Text = "util.lua failed - see console", Duration = 8,
     })
 end
 local C = load("config")
-local Q = load("quests")   -- dependency of farm.lua, passed as deps
+local D = load("data")     -- dependency of farm/pages/extras, passed as deps
 
 U.modules = report
 function U.logText()
     return table.concat(U.logs, "\n")
 end
-U.log("i", "BFHub loading, executor " .. tostring(identifyexecutor()))
+U.C = C
+U.log("i", "loading, executor " .. tostring(identifyexecutor()) .. ", sea " .. tostring(U.sea) .. ", level " .. U.level())
 
 local UI = load("ui")
 local win
@@ -88,7 +89,7 @@ for _, name in ipairs({ "farm", "extras" }) do
     local m = load(name)
     if m then
         U.safe("init " .. name, function()
-            if m.init then m.init(U, C, UI, win, { Q = Q }) end
+            if m.init then m.init(U, C, UI, win, { D = D }) end
         end)
         table.insert(mods, m)
     end
@@ -114,5 +115,5 @@ task.spawn(function()
     end
 end)
 
-U.notify("BFHub loaded - RightCtrl to toggle")
-U.log("i", "loaded, " .. #mods .. " feature modules")
+U.notify("loaded - RightCtrl to toggle")
+U.log("i", "loaded, " .. #mods .. " feature modules, " .. #(win and win.rows or {}) .. " UI rows")

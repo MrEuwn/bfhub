@@ -1,4 +1,4 @@
---[[ util.lua - services, remotes, world finders, logging.
+--[[ util.lua - services, remotes, world finders, travel, combat, logging.
      Everything game-version-sensitive lives here so one fix propagates. ]]
 
 local U = {}
@@ -11,6 +11,15 @@ local LP = Players.LocalPlayer
 
 U.Players, U.RS, U.LP, U.TweenService = Players, RS, LP, TweenService
 
+-- sea detection: PlaceId is authoritative, island count is the fallback for subplaces
+U.sea = ({ [2753915549] = 1, [4442272183] = 2, [7449423635] = 3 })[game.PlaceId]
+if not U.sea then
+    local w = workspace:FindFirstChild("_WorldOrigin")
+    local loc = w and w:FindFirstChild("Locations")
+    local n = loc and #loc:GetChildren() or 0
+    U.sea = n > 30 and 3 or (n > 15 and 2 or 1)
+end
+
 local remotes = RS:WaitForChild("Remotes", 30)
 U.CommF = remotes and remotes:WaitForChild("CommF_", 30)
 U.CommE = remotes and remotes:FindFirstChild("CommE")
@@ -18,13 +27,15 @@ U.Redeem = remotes and remotes:FindFirstChild("Redeem")
 
 U.angle = 0
 U.logs = {}
+U.TeleportPos = nil       -- last travel target, used to gate attacks by distance
+U.block = nil             -- the invisible part the camera tweens (Redz travel method)
 local MAXLOG = 250
 
 function U.log(level, msg)
     msg = tostring(msg)
     table.insert(U.logs, "[" .. level .. "] " .. msg)
     if #U.logs > MAXLOG then table.remove(U.logs, 1) end
-    if level == "x" then warn("[BFHub] " .. msg) else print("[BFHub] " .. msg) end
+    if level == "x" then warn("[RPS] " .. msg) else print("[RPS] " .. msg) end
     if U.onLog then pcall(U.onLog, level, msg) end
 end
 
@@ -41,7 +52,7 @@ end
 function U.notify(text, dur)
     pcall(function()
         StarterGui:SetCore("SendNotification", {
-            Title = "BFHub", Text = tostring(text), Duration = dur or 4,
+            Title = "Raf's Personal Script", Text = tostring(text), Duration = dur or 4,
         })
     end)
 end
@@ -57,7 +68,8 @@ function U.remote(remote, invoke, ...)
     return ok, res
 end
 
-function U.F(name, ...)  -- CommF_:InvokeServer
+-- FireRemote: CommF_ is the action remote for gear/style/stats/quests
+function U.F(name, ...)
     local ok, res = U.remote(U.CommF, true, name, ...)
     if not ok then U.log("x", "CommF " .. tostring(name) .. ": " .. tostring(res)) end
     return res
@@ -67,7 +79,7 @@ end
 function U.char() return LP.Character end
 function U.root()
     local c = LP.Character
-    return c and c:FindFirstChild("HumanoidRootPart")
+    return c and (c.PrimaryPart or c:FindFirstChild("HumanoidRootPart"))
 end
 function U.hum()
     local c = LP.Character
@@ -82,20 +94,51 @@ function U.level()
     local l = d and d:FindFirstChild("Level")
     return l and l.Value or 0
 end
+function U.data(name)
+    local d = LP:FindFirstChild("Data")
+    local v = d and d:FindFirstChild(name)
+    return v and v.Value
+end
 
+-- travel -------------------------------------------------------------------
 function U.tp(cf)
     local r = U.root()
     if r then r.CFrame = cf end
 end
 
+-- The camera follows the player's PrimaryPart, so travel must be a tween on a
+-- part the camera is watching, not a raw CFrame set (Redz method).
+function U.ensureBlock()
+    if U.block and U.block.Parent then return U.block end
+    local b = Instance.new("Part")
+    b.Name = "RPSBlock"
+    b.Size = Vector3.new(1, 1, 1)
+    b.Transparency = 1
+    b.CanCollide = false
+    b.Anchored = true
+    b.Parent = workspace
+    U.block = b
+    return b
+end
+
 function U.tweenTo(cf, speed)
     local r = U.root()
     if not r then return end
+    U.TeleportPos = cf.Position
     local dist = (r.Position - cf.Position).Magnitude
     if dist < 1 then r.CFrame = cf return end
-    local t = TweenService:Create(r, TweenInfo.new(dist / (speed or 170), Enum.EasingStyle.Linear), { CFrame = cf })
-    U.tween = t
-    t:Play()
+    if not (U.C and U.C.get("tween")) then r.CFrame = cf return end
+    local b = U.ensureBlock()
+    -- ponytail: straight hop, no pathfinding. Add an A* module only if the server
+    -- starts rejecting cross-island travel.
+    if dist > 450 and U.C.get("portalhop") then
+        r.CFrame = cf
+        b.CFrame = cf
+    else
+        local t = TweenService:Create(b, TweenInfo.new(dist / (speed or 170), Enum.EasingStyle.Linear), { CFrame = cf })
+        U.tween = t
+        t:Play()
+    end
 end
 
 function U.stopTween()
@@ -112,7 +155,7 @@ end
 local function isMob(m)
     if not m:IsA("Model") then return false end
     local h = m:FindFirstChildOfClass("Humanoid")
-    local r = m:FindFirstChild("HumanoidRootPart")
+    local r = m.PrimaryPart or m:FindFirstChild("HumanoidRootPart")
     if not (h and r) or h.Health <= 0 then return false end
     if Players:GetPlayerFromCharacter(m) then return false end
     return true
@@ -132,22 +175,30 @@ function U.mobs(name)
     return out
 end
 
-function U.nearestMob(name)
+function U.nearestMob(name, limit)
     local r = U.root()
     if not r then return nil end
-    local best, bd
+    local best, bd = nil, limit or 2500
     for _, m in ipairs(U.mobs(name)) do
-        local d = (m.HumanoidRootPart.Position - r.Position).Magnitude
-        if not bd or d < bd then best, bd = m, d end
+        local p = U.mobPos(m)
+        if p then
+            local d = (p.Position - r.Position).Magnitude
+            if d <= bd then best, bd = m, d end
+        end
     end
     return best, bd
+end
+
+function U.mobPos(m)
+    return m.PrimaryPart or m:FindFirstChild("HumanoidRootPart")
 end
 
 -- Orbit instead of parking: a parked player stops crossing the hitbox.
 function U.orbit(mob, height)
     U.angle = (U.angle + 5) % 360
     local a = math.rad(U.angle)
-    return mob.HumanoidRootPart.CFrame + Vector3.new(math.sin(a) * 35, height or 20, math.cos(a) * 35)
+    local p = U.mobPos(mob)
+    return p.CFrame + Vector3.new(math.sin(a) * 35, height or 20, math.cos(a) * 35)
 end
 
 -- attacking ----------------------------------------------------------------
@@ -156,13 +207,29 @@ end
 -- Because it is a genuine M1 the server credits the kill (money/exp).
 local function controller()
     local ok, ac = pcall(function()
-        local ups = debug.getupvalues(require(U.LP.PlayerScripts.CombatFramework))
+        local ups = debug.getupvalues(require(LP.PlayerScripts.CombatFramework))
         for i = 1, 5 do
             local u = ups[i]
             if type(u) == "table" and u.activeController then return u.activeController end
         end
     end)
     return ok and ac or nil
+end
+
+function U.fastAttack()
+    pcall(function()
+        local ac = controller()
+        if not ac then return end
+        ac.increment = 3
+        ac.timeToNextAttack = 0
+        ac.timeToNextBlock = 0
+        ac.focusStart = 0
+        ac.attacking = false
+        ac.blocking = false
+        if ac.humanoid then ac.humanoid.AutoRotate = true end
+        ac.currentAttackTrack = 0
+    end)
+    pcall(function() sethiddenproperty(LP, "SimulationRadius", math.huge) end)
 end
 
 function U.attack(range)
@@ -173,14 +240,7 @@ function U.attack(range)
     if stun then stun.Value = 0 end
     pcall(function()
         local ac = controller()
-        if ac then
-            ac.attacking = false
-            ac.blocking = false
-            ac.timeToNextAttack = tick() - 1
-            ac.timeToNextBlock = 0
-            ac.increment = 3
-            ac.hitboxMagnitude = range or 60
-        end
+        if ac then ac.hitboxMagnitude = range or 60 end
     end)
     local vp = workspace.CurrentCamera.ViewportSize
     local vu = game:GetService("VirtualUser")
@@ -204,9 +264,9 @@ function U.netAttack(range)
     if not (tip and ({ Melee = true, Sword = true, ["Blox Fruit"] = true, Gun = true })[tip.Value]) then return end
     local hits = {}
     for _, m in ipairs(U.mobs()) do
-        local hrp = m:FindFirstChild("HumanoidRootPart")
-        if hrp and (hrp.Position - root.Position).Magnitude <= (range or 60) then
-            table.insert(hits, { m, m:FindFirstChild("Head") or hrp })
+        local p = U.mobPos(m)
+        if p and (p.Position - root.Position).Magnitude <= (range or 60) then
+            table.insert(hits, { m, m:FindFirstChild("Head") or p })
         end
     end
     if #hits == 0 then return end
@@ -221,15 +281,15 @@ function U.bringMobs(name)
     local anchor = r.CFrame * CFrame.new(0, 0, -6)
     pcall(function() sethiddenproperty(LP, "SimulationRadius", math.huge) end)
     for _, m in ipairs(U.mobs(name)) do
-        local hrp, h = m:FindFirstChild("HumanoidRootPart"), m:FindFirstChildOfClass("Humanoid")
-        if hrp and h then
-            hrp.Size = Vector3.new(60, 60, 60)
-            hrp.CanCollide = false
-            hrp.Transparency = 1
+        local p, h = U.mobPos(m), m:FindFirstChildOfClass("Humanoid")
+        if p and h then
+            p.Size = Vector3.new(60, 60, 60)
+            p.CanCollide = false
+            p.Transparency = 1
             h.PlatformStand = true
             h.WalkSpeed = 0
             h.JumpPower = 0
-            hrp.CFrame = anchor
+            p.CFrame = anchor
         end
     end
 end
@@ -238,11 +298,11 @@ end
 function U.hover(on)
     local r = U.root()
     if not r then return end
-    local bv = r:FindFirstChild("BFHubHover")
+    local bv = r:FindFirstChild("RPSHover")
     if on then
         if not bv then
             bv = Instance.new("BodyVelocity")
-            bv.Name = "BFHubHover"
+            bv.Name = "RPSHover"
             bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
             bv.Velocity = Vector3.zero
             bv.Parent = r

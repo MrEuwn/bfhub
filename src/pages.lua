@@ -1,48 +1,59 @@
---[[ pages.lua - Farm / Combat / Player / Misc tabs. UI only: every toggle writes
-     into the shared config store that farm.lua and extras.lua read each tick. ]]
+--[[ pages.lua - every tab. UI only: each row writes into the shared config store
+     that farm.lua / extras.lua read each tick. ]]
 
 local M = {}
+local U, C, UI, win, D
 
-function M.init(U, C, UI, win)
-    M.U, M.C = U, C
+local function cycle(key, list, label)
+    local cur = C.get(key)
+    for i, v in ipairs(list) do
+        if v == cur then
+            C.set(key, list[i % #list + 1])
+            return U.notify(label .. ": " .. tostring(C.get(key)))
+        end
+    end
+    C.set(key, list[1])
+    U.notify(label .. ": " .. tostring(list[1]))
+end
 
-    -- Farm ---------------------------------------------------------------
+function M.init(_U, _C, _UI, _w, deps)
+    U, C, UI, win = _U, _C, _UI, _w
+    D = deps and deps.D
+
+    -- FARM ------------------------------------------------------------------
     local p = win:tab("Farm")
-    local c = win:card(p, "Auto Farm")
-    win:toggle(c, "Auto Farm Level", "kill quest mobs for your level", "farm")
+    local c = win:card(p, "Auto Farm Level")
+    win:toggle(c, "Auto Farm Level", "accept the quest, travel, bring, hit", "farm")
     win:toggle(c, "Auto Quest", "accept the quest automatically", "autoquest")
+    win:dropdown(c, "Mode", "farmmode", { "level", "nearest", "boss", "mastery" })
+    win:dropdown(c, "Weapon", "farmtool", { "Melee", "Sword", "Gun", "Blox Fruit" })
     win:slider(c, "Farm Distance", "farmdistance", 5, 60, 1)
     win:toggle(c, "Orbit Target", "circle the mob so hits keep landing", "orbit")
-
-    c = win:card(p, "Bring Mobs")
     win:toggle(c, "Bring Mobs", "pin mobs + enlarge hitbox", "bring")
     win:slider(c, "Bring Distance", "bringdist", 50, 500, 10)
 
     c = win:card(p, "Travel")
     win:toggle(c, "Tween Travel", "smooth flight instead of instant teleport", "tween")
     win:slider(c, "Tween Speed", "tweenspeed", 60, 400, 10)
+    win:toggle(c, "Portal Hop", "hard teleport when far (faster, riskier)", "portalhop")
     win:toggle(c, "Fly / Hover", "hold position above the mob", "hover")
     win:toggle(c, "NoClip", nil, "noclip")
     win:button(c, "STOP TWEEN", "kill-switch for a stuck tween", function() U.stopTween() end)
 
-    -- Combat -------------------------------------------------------------
+    c = win:card(p, "Boss")
+    win:dropdown(c, "Boss List", "bossselected", D and D.bossList[U.sea] or {})
+    win:toggle(c, "Take Boss Quest", "accept the boss quest first", "bossquest")
+
+    -- COMBAT ----------------------------------------------------------------
     p = win:tab("Combat")
     c = win:card(p, "Attack")
     win:toggle(c, "Fast Attack", "zero cooldowns, real credited M1", "fastattack")
+    win:toggle(c, "Auto Click", nil, "autoclick")
     win:slider(c, "Attack Range", "attackdist", 20, 200, 5)
+    win:slider(c, "Click Delay", "clickdelay", 0.05, 1, 0.01)
     win:button(c, "Attack Method", "tap to switch m1 <-> net remote", function()
         C.set("method", C.get("method") == "m1" and "net" or "m1")
         U.notify("attack method: " .. C.get("method"))
-    end)
-    win:button(c, "Weapon", "tap to cycle Melee/Sword/Gun/Blox Fruit", function()
-        local order = { "Melee", "Sword", "Gun", "Blox Fruit" }
-        for i, w in ipairs(order) do
-            if w == C.get("weapon") then
-                C.set("weapon", order[i % #order + 1])
-                return U.notify("weapon: " .. C.get("weapon"))
-            end
-        end
-        C.set("weapon", "Melee")
     end)
 
     c = win:card(p, "Kill Aura")
@@ -55,73 +66,105 @@ function M.init(U, C, UI, win)
     win:toggle(c, "Auto Ken", nil, "autoken")
     win:toggle(c, "Heal When Low", "under 30% HP", "heal")
 
-    -- Player -------------------------------------------------------------
-    p = win:tab("Player")
-    c = win:card(p, "Stats")
+    -- MASTERY / STATS -------------------------------------------------------
+    p = win:tab("Stats")
+    c = win:card(p, "Mastery")
+    win:toggle(c, "Auto Farm Mastery", "grind the equipped tool", "automastery")
+    win:dropdown(c, "Tool", "masterytool", { "Blox Fruit", "Melee", "Sword", "Gun" })
+    win:slider(c, "Stop At", "masteryvalue", 100, 600, 50)
+    c = win:card(p, "Stat Points")
     win:toggle(c, "Auto Stat Point", "spend points as they arrive", "autostat")
-    win:button(c, "Stat", "tap to cycle Melee/Sword/Gun/Defense/Blox Fruit", function()
-        local order = { "Melee", "Sword", "Gun", "Defense", "Blox Fruit" }
-        for i, s in ipairs(order) do
-            if s == C.get("stat") then
-                C.set("stat", order[i % #order + 1])
-                return U.notify("stat: " .. C.get("stat"))
-            end
-        end
-        C.set("stat", "Melee")
-    end)
+    win:dropdown(c, "Stat", "stat", { "Melee", "Sword", "Gun", "Defense", "Blox Fruit" })
+    win:slider(c, "Points", "statpoints", 1, 100, 1)
     win:button(c, "Check Boost", "read your current boosts", function()
         local r = U.F("CheckBoost")
         U.log("i", "boost: " .. tostring(r))
         U.notify("boost -> Log tab")
     end)
 
+    -- RACE / MISC -----------------------------------------------------------
     c = win:card(p, "Race")
+    win:toggle(c, "Auto Race V2", "run the Alchemist race quest", "autoracev2")
     win:button(c, "Race Reroll", "BlackbeardReward reroll 1", function() U.F("BlackbeardReward", "Reroll", "1") end)
     win:button(c, "Race Reroll (2)", "second reroll slot", function() U.F("BlackbeardReward", "Reroll", "2") end)
     win:button(c, "Stat Refund", "BlackbeardReward refund", function() U.F("BlackbeardReward", "Refund", "1") end)
 
-    -- Misc ---------------------------------------------------------------
-    p = win:tab("Misc")
-    c = win:card(p, "World")
-    win:toggle(c, "ESP Mobs", "name tags on enemies", "esp")
-    win:button(c, "Teleport to Island", "reads the live Locations registry", function()
-        local loc = workspace:FindFirstChild("_WorldOrigin")
-        loc = loc and loc:FindFirstChild("Locations")
-        if not loc then return U.notify("no Locations registry") end
-        local names = {}
-        for _, i in ipairs(loc:GetChildren()) do table.insert(names, i.Name) end
-        U.log("i", "islands: " .. table.concat(names, ", "))
-        U.notify(#names .. " islands -> Log tab")
-    end)
-
-    c = win:card(p, "Codes")
-    win:button(c, "Redeem All Known Codes", "tries the current public code list", function()
-        local codes = {
-            "Sub2CaptainMaui", "DEVSCOOKING", "kittgaming", "Sub2Fer999", "Enyu_is_Pro",
-            "Magicbus", "JCWK", "StarcodeHEO", "Bluxxy", "fudd10_v2", "Fudd10", "Bignews",
-            "THEGREATACE", "SUB2GAMERROBOT_EXP1", "Sub2NoobMaster123", "Sub2UncleKizaru",
-            "Sub2Daigrock", "AxiTpSword", "SwordTycoon",
-        }
-        for _, code in ipairs(codes) do
-            if U.Redeem then U.remote(U.Redeem, true, code) end
+    -- TELEPORT --------------------------------------------------------------
+    p = win:tab("Teleport")
+    c = win:card(p, "Islands")
+    -- read the live registry at build time; it is dynamic per sea, so never hardcode
+    local islands = {}
+    do
+        local w = workspace:FindFirstChild("_WorldOrigin")
+        local loc = w and w:FindFirstChild("Locations")
+        if loc then
+            for _, i in ipairs(loc:GetChildren()) do table.insert(islands, i.Name) end
+            table.sort(islands)
         end
-        U.notify("codes tried")
+    end
+    if #islands == 0 then islands = { "no Locations registry" } end
+    win:dropdown(c, "Island", "island", islands)
+    win:button(c, "Teleport", "jump to the island above", function() M.teleportIsland() end)
+    c = win:card(p, "Sea")
+    win:button(c, "Teleport to Sea 1", nil, function() U.F("TravelMain") end)
+    win:button(c, "Teleport to Sea 2", nil, function() U.F("TravelDressrosa") end)
+    win:button(c, "Teleport to Sea 3", nil, function() U.F("TravelZou") end)
+    c = win:card(p, "Server")
+    win:textbox(c, "Server ID", "serverid", "jobId")
+    win:button(c, "Join Server", "teleport to the jobId above", function()
+        local id = C.get("serverid")
+        if id and #id > 10 then
+            game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, id, U.LP)
+        else
+            U.notify("paste a jobId first")
+        end
     end)
+    win:button(c, "Server Hop", "jump to a less full server", function() M.serverHop() end)
 
+    -- SHOP ------------------------------------------------------------------
+    p = win:tab("Shop")
+    c = win:card(p, "Codes")
+    win:button(c, "Redeem All Codes", "sends the current public code list", function() M.redeemCodes() end)
+
+    c = win:card(p, "Fighting Styles")
+    for _, s in ipairs({ "Black Leg", "Electro", "Fishman Karate", "Dragon Claw", "Superhuman",
+                         "Death Step", "Sharkman Karate", "Electric Claw", "Dragon Talon",
+                         "Godhuman", "Sanguine Art" }) do
+        win:button(c, "Buy " .. s, nil, function()
+            U.F(s, true) U.F(s) U.notify("buying " .. s)
+        end)
+    end
+    c = win:card(p, "Swords")
+    for _, s in ipairs({ "Katana", "Cutlass", "Dual Katana", "Iron Mace", "Triple Katana",
+                         "Pipe", "Dual-Headed Blade", "Soul Cane", "Bisento" }) do
+        win:button(c, "Buy " .. s, nil, function()
+            U.F("Buy" .. s:gsub("[%s%-]", "")) U.notify("buying " .. s)
+        end)
+    end
+    c = win:card(p, "Guns")
+    for _, s in ipairs({ "Musket", "Slingshot", "Flintlock", "Refined Slingshot",
+                         "Refined Flintlock", "Cannon", "Kabucha" }) do
+        win:button(c, "Buy " .. s, nil, function()
+            U.F("Buy" .. s:gsub("[%s%-]", "")) U.notify("buying " .. s)
+        end)
+    end
+
+    -- VISUAL ----------------------------------------------------------------
+    p = win:tab("Visual")
+    c = win:card(p, "ESP")
+    win:toggle(c, "ESP Mobs", "name tags on enemies", "esp")
+    win:toggle(c, "ESP Players", nil, "espplayers")
+    c = win:card(p, "Performance")
+    win:toggle(c, "Low-End Mode", "kills particles + shadows (mobile fps)", "lowend")
+    win:toggle(c, "Anti-AFK", nil, "antiafk")
+    win:toggle(c, "Walk On Water", "platform under your feet", "walkonwater")
+    win:toggle(c, "Heal When Low", "under 30% HP", "heal")
+
+    -- MISC ------------------------------------------------------------------
+    p = win:tab("Misc")
     c = win:card(p, "Log Webhook")
     win:label(c, "paste a Discord webhook URL here, then Log tab > Send")
-    local box = Instance.new("TextBox")
-    box.Size = UDim2.new(1, 0, 0, 24)
-    box.BackgroundColor3 = Color3.fromRGB(22, 23, 28)
-    box.TextColor3 = Color3.fromRGB(232, 234, 242)
-    box.Font = Enum.Font.Gotham
-    box.TextSize = 11
-    box.Text = C.get("webhook")
-    box.PlaceholderText = "https://discord.com/api/webhooks/..."
-    box.ClearTextOnFocus = false
-    box.Parent = c
-    box:GetPropertyChangedSignal("Text"):Connect(function() C.set("webhook", box.Text) end)
-
+    win:textbox(c, "Webhook", "webhook", "https://discord.com/api/webhooks/...")
     c = win:card(p, "Credits")
     win:label(c, "use an alt account. this is a cheat.")
     return M

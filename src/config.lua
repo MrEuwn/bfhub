@@ -1,5 +1,5 @@
---[[ config.lua - flat state store. Toggles are plain booleans keyed by name,
-     shared by the UI rows and the feature modules. ]]
+--[[ config.lua - flat state store. Toggles are plain booleans/numbers/strings
+     keyed by name, shared by the UI rows and the feature modules. ]]
 
 local C = {}
 
@@ -7,17 +7,20 @@ C.values = {
     -- farm
     farm = false,
     autoquest = true,
+    farmtool = "Melee",
     farmdistance = 20,
     orbit = true,
     bring = true,
     bringdist = 250,
+    autoclick = true,
+    clickdelay = 0.18,
     -- travel
     tween = true,
     tweenspeed = 170,
+    portalhop = false,
     hover = true,
     noclip = true,
     -- combat
-    weapon = "Melee",
     method = "m1",
     fastattack = true,
     attackdist = 60,
@@ -25,14 +28,22 @@ C.values = {
     aura = 120,
     autobuso = true,
     autoken = true,
-    -- player
+    healthskill = 25,
+    -- mastery / stats
+    automastery = false,
+    masterytool = "Blox Fruit",
+    masteryvalue = 300,
     autostat = false,
     stat = "Melee",
+    statpoints = 1,
+    -- races / misc
+    autoracev2 = false,
     heal = false,
-    -- misc
     esp = false,
+    espplayers = false,
     lowend = false,
-    antiafk = false,
+    antiafk = true,
+    walkonwater = false,
     webhook = "",
 }
 

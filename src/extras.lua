@@ -1,80 +1,102 @@
---[[ extras.lua - combat helpers + ESP, quest teleport, stats, low-end mode. ]]
+--[[ extras.lua - combat helpers, ESP, world utilities, server hop, codes, shops.
+     Each block is gated on its own toggle so the scheduler stays cheap. ]]
 
 local M = {}
+local U, C, D
 
-function M.init(U, C)
-    M.U, M.C = U, C
+function M.init(_U, _C, _UI, _win, deps)
+    U, C, D = _U, _C, deps and deps.D
     -- lowend touches every descendant: apply on change, not every tick
     C.onChange = function(k)
-        if k == "lowend" then M.lowend(U, C) end
+        if k == "lowend" then M.lowend() end
     end
-    M.lowend(U, C)
+    M.lowend()
 end
 
 -- kill aura: snap onto the cluster BEFORE swinging, a distant swing misses.
-function M.aura(U, C)
+function M.aura()
     if not C.get("killaura") or not U.alive() then return end
     local mob = U.nearestMob()
     if not mob then return end
     local root = U.root()
-    if root then root.CFrame = mob.HumanoidRootPart.CFrame + Vector3.new(0, 12, 0) end
-    U.equip(C.get("weapon"))
+    if root then root.CFrame = U.mobPos(mob).CFrame + Vector3.new(0, 12, 0) end
+    U.equip(C.get("farmtool"))
     if C.get("method") == "net" then U.netAttack(C.get("aura")) else U.attack(C.get("aura")) end
 end
 
 -- ESP: reuse the existing tag, never destroy+recreate per tick (main mobile lag source).
 local tags = {}
-function M.esp(U, C)
+local function clearTags()
+    for _, t in pairs(tags) do pcall(function() t:Destroy() end) end
+    tags = {}
+end
+
+local function tag(m, hrp, text, color)
+    local t = tags[m]
+    if not t or not t.Parent then
+        t = Instance.new("BillboardGui")
+        t.Name = "RPSESP"
+        t.Size = UDim2.fromOffset(110, 30)
+        t.StudsOffset = Vector3.new(0, 3, 0)
+        t.AlwaysOnTop = true
+        t.Adornee = hrp
+        t.Parent = hrp
+        local tl = Instance.new("TextLabel")
+        tl.Size = UDim2.fromScale(1, 1)
+        tl.BackgroundTransparency = 1
+        tl.Font = Enum.Font.GothamBold
+        tl.TextSize = 12
+        tl.TextStrokeTransparency = 0.3
+        tl.Parent = t
+        tags[m] = t
+    end
+    local tl = t:FindFirstChildOfClass("TextLabel")
+    if tl then
+        tl.Text = text
+        tl.TextColor3 = color
+    end
+end
+
+function M.esp()
     local want = C.get("esp")
     if not want then
-        for _, t in pairs(tags) do pcall(function() t:Destroy() end) end
-        tags = {}
+        if next(tags) then clearTags() end
         return
     end
     local seen = {}
     for _, m in ipairs(U.mobs()) do
-        seen[m] = true
-        local hrp = m:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            local tag = tags[m]
-            if not tag or not tag.Parent then
-                tag = Instance.new("BillboardGui")
-                tag.Name = "BFHubESP"
-                tag.Size = UDim2.fromOffset(110, 30)
-                tag.StudsOffset = Vector3.new(0, 3, 0)
-                tag.AlwaysOnTop = true
-                tag.Adornee = hrp
-                tag.Parent = hrp
-                local tl = Instance.new("TextLabel")
-                tl.Size = UDim2.fromScale(1, 1)
-                tl.BackgroundTransparency = 1
-                tl.Font = Enum.Font.GothamBold
-                tl.TextSize = 12
-                tl.TextStrokeTransparency = 0.3
-                tl.TextColor3 = Color3.fromRGB(255, 235, 120)
-                tl.Parent = tag
-                tags[m] = tag
-            end
-            local tl = tag:FindFirstChildOfClass("TextLabel")
-            if tl then tl.Text = U.baseName(m.Name) end
+        local p = U.mobPos(m)
+        if p then
+            seen[m] = true
+            tag(m, p, U.baseName(m.Name), Color3.fromRGB(255, 235, 120))
         end
     end
-    for m, t in pairs(tags) do
-        if not seen[m] then pcall(function() t:Destroy() end) tags[m] = nil end
+    -- players
+    if C.get("espplayers") then
+        for _, plr in ipairs(U.Players:GetPlayers()) do
+            if plr ~= U.LP and plr.Character then
+                local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    seen[plr] = true
+                    tag(plr, hrp, plr.Name, Color3.fromRGB(255, 120, 120))
+                end
+            end
+        end
+    end
+    for k, t in pairs(tags) do
+        if not seen[k] then pcall(function() t:Destroy() end) tags[k] = nil end
     end
 end
 
 -- low-end mode: what actually costs frames on mobile
 local originals = {}
-function M.lowend(U, C)
+function M.lowend()
+    if not (U and C) then return end
     local on = C.get("lowend")
     local l = game:GetService("Lighting")
     if on then
-        originals.global = originals.global or l.GlobalShadows
-        originals.tech = originals.tech or l.Technology
+        originals.global = originals.global == nil and l.GlobalShadows or originals.global
         l.GlobalShadows = false
-        pcall(function() l.Technology = Enum.Technology.Compatibility end)
-        pcall(function() game:GetService("UserInputService").MouseIconEnabled = true end)
     elseif originals.global ~= nil then
         l.GlobalShadows = originals.global
     end
@@ -90,29 +112,103 @@ function M.lowend(U, C)
     end
 end
 
--- auto stat point: AddPoint takes the stat name; only fires when a point exists.
-function M.stats(U, C)
-    if not C.get("autostat") then return end
-    local d = U.LP:FindFirstChild("Data")
-    local pts = d and d:FindFirstChild("Points")
-    local n = pts and pts.Value or 0
-    if n and n > 0 then U.F("AddPoint", C.get("stat"), n) end
+-- anti-AFK: fires the idle event the server watches
+function M.antiafk()
+    if not C.get("antiafk") then return end
+    local vu = game:GetService("VirtualUser")
+    vu:CaptureController()
+    vu:ClickButton2(Vector2.new(0, 0))
 end
 
--- anti-AFK: fires the idle event the server watches
-function M.antiafk(U, C)
-    if C.get("antiafk") then
-        local vu = game:GetService("VirtualUser")
-        vu:CaptureController()
-        vu:ClickButton2(Vector2.new(0, 0))
+-- walk on water: a platform under the player while moving
+function M.water()
+    local on = C.get("walkonwater")
+    local r = U.root()
+    if not r then return end
+    local p = r:FindFirstChild("RPSWater")
+    if on and not p then
+        p = Instance.new("Part")
+        p.Name = "RPSWater"
+        p.Size = Vector3.new(30, 1, 30)
+        p.Anchored = true
+        p.CanCollide = true
+        p.Transparency = 0.7
+        p.Parent = workspace
+        M.waterPart = p
+    end
+    if M.waterPart and M.waterPart.Parent then
+        M.waterPart.CFrame = CFrame.new(r.Position - Vector3.new(0, 4, 0))
+        if not on then M.waterPart:Destroy() M.waterPart = nil end
     end
 end
 
-function M.tick(U, C)
-    M.aura(U, C)
-    M.esp(U, C)
-    M.stats(U, C)
-    M.antiafk(U, C)
+function M.tick(_U, _C)
+    M.aura()
+    M.esp()
+    M.water()
+    M.antiafk()
+end
+
+-- actions (buttons) --------------------------------------------------------
+function M.serverHop()
+    local Http = game:GetService("HttpService")
+    local TS = game:GetService("TeleportService")
+    local ok, body = pcall(function()
+        return game:HttpGet(string.format(
+            "https://games.roblox.com/v1/games/%d/servers/Public?limit=100", game.PlaceId))
+    end)
+    if not ok or not body then return U.notify("server list blocked") end
+    local data = Http:JSONDecode(body)
+    for _, s in ipairs(data.data or {}) do
+        if s.playing < s.maxPlayers and s.id ~= game.JobId then
+            U.notify("hopping...")
+            TS:TeleportToPlaceInstance(game.PlaceId, s.id, U.LP)
+            return
+        end
+    end
+    U.notify("no free server, retrying")
+end
+
+function M.redeemCodes()
+    if not U.Redeem then return U.notify("no Redeem remote") end
+    local n = 0
+    for _, code in ipairs(D and D.codes or {}) do
+        U.remote(U.Redeem, true, code)
+        n = n + 1
+    end
+    U.notify(n .. " codes sent")
+end
+
+-- gear/style buys are CommF_ with the name concatenated (Redz names, no spaces)
+function M.buy(name)
+    U.F(name)
+    U.notify("sent: " .. name)
+end
+
+function M.teleportIsland()
+    local w = workspace:FindFirstChild("_WorldOrigin")
+    local loc = w and w:FindFirstChild("Locations")
+    if not loc then return U.notify("no Locations registry") end
+    local name = C.get("island")
+    local island = name and loc:FindFirstChild(name)
+    if not island then
+        local names = {}
+        for _, i in ipairs(loc:GetChildren()) do table.insert(names, i.Name) end
+        U.log("i", "islands: " .. table.concat(names, ", "))
+        return U.notify("pick an island in the dropdown")
+    end
+    local part = island.PrimaryPart or island:FindFirstChildWhichIsA("BasePart")
+    if part then U.tp(part.CFrame * CFrame.new(0, 30, 0)) end
+end
+
+function M.islands()
+    local w = workspace:FindFirstChild("_WorldOrigin")
+    local loc = w and w:FindFirstChild("Locations")
+    if not loc then return {} end
+    local out = {}
+    for _, i in ipairs(loc:GetChildren()) do table.insert(out, i.Name) end
+    table.sort(out)
+    return out
 end
 
 return M
