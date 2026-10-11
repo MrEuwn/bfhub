@@ -1,50 +1,42 @@
 # Raf's Personal Script
 
-Blox Fruits hub for Delta (mobile). One paste line:
+Runs **HoHo Hub** for Blox Fruits, **keyless**.
 
 ```lua
 loadstring(game:HttpGet("https://raw.githubusercontent.com/MrEuwn/bfhub/main/bfhub.lua"))()
 ```
 
-## What this is
+Paste that in Delta while Blox Fruits is open. Press **RightCtrl** to show/hide
+the UI; a **HoHo** button also appears on screen.
 
-The feature set is a **recovered hub**: the Blox Fruits build of "Speed Hub X
-v5.5.0" was protected with Luraph v15, deobfuscated to readable Luau
-(191 KB, 6764 lines), and grafted onto our own lightweight UI.
+## Why there is no key
 
-- **149 controls across 37 sections** - the original feature set, intact.
-- **No key system.** The original's key check and luarmor loader are stripped.
-- **No telemetry.** A webhook that phoned home to the author's repo is removed.
-- **Our own UI.** The author's UI library was itself obfuscated, so it was
-  replaced by `src/uilib.lua` (raw `Instance.new`, ~18 KB) which implements the
-  same call surface. That keeps it light on mobile.
+HoHo's own loader, `acsu123/HOHO_H` -> `main/new_load.lua`, has **no key system
+and no ad gate**. It matches `game.GameId` against a table and runs that game's
+script. Audited: no `getkey`, `luarmor`, `linkvertise`, `lootlabs` or `work.ink`
+reference anywhere in it.
 
-## Layout
+The key-and-ads flow people complain about comes from a **different** loader,
+`acsu123/HohoV2` -> `main/ScriptLoad.lua`. This repo does not use that one.
 
-```
-bfhub.lua        entry: fetches modules, runs the hub, adds extras
-src/util.lua     services, teleport, tween, notify
-src/config.lua   config store
-src/quests.lua   81-row quest table (level range -> quest/mob/position)
-src/uilib.lua    UI shim (Instance.new) - replaces the obfuscated library
-src/funcs.lua    FuncsV3 adapter (thin, readable upstream)
-src/hub.lua      the recovered hub body (180 KB)
-src/log.lua      error log + webhook reporting
-reference/       the deobfuscated source + notes, for study
-```
+Blox Fruits GameId is `994732206` (verified: place 2753915549 -> universe
+994732206 -> "Blox Fruits" by Gamer Robot Inc), which maps to
+`main/HohoHub.lua`.
 
-## Feature map (from the recovered hub)
+## What this repo contains
 
-Configuration, Local Player, Server Manager, Stat Manager, Stack Farming, Hop
-Boss, Level Farming, Nearest Enemy Farming, Mastery Farming, Collection
-Farming, Boss Farming, Material Farming, Third World, Dragon Hunter, Tyrant of
-the Skies, Citizen Quest, Kitsune Island, Sea Event, Leviathan Farming, Wood
-Planks, Prehistoric Island, Sea Items, Fruits, Shop, Automation Fishing, Mirage
-Island, Upgrade Race, Raid, ESP, Anti-Cheat Bypass, Team, Menu UI, Redeem,
-Water, Remove Effects, Automations, Reset Config.
+Just the launcher. HoHo itself is fetched live from the author's repo, so it
+stays current and we never redistribute it. If `new_load.lua` is ever gated or
+breaks, the launcher falls back to calling the Blox Fruits payload directly.
 
-## Notes
+## Credits
 
-- Roblox ToS: this is a cheat. Ban risk is real. Use an alt account.
-- `reference/deobf-bloxfruit-v15-full.lua` is the raw deobfuscated source.
-- `reference/hoho-feature-map.txt` is HoHo Hub's own feature tree.
+HoHo Hub by **acsu123** - https://github.com/acsu123/HOHO_H
+
+This is a launcher, not a copy: HoHo is fetched from its author's repository at
+run time and no part of it is redistributed here.
+
+## Warning
+
+This is a cheat. It violates Roblox's terms of service and carries a real ban
+risk. Use an alt account.
