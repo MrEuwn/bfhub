@@ -523,6 +523,12 @@ end
 
 U.bringMob = U.magnetMob
 
+-- Farm offset above the mob (Redz "Farm Distance").
+function U.farmPos(dist)
+    dist = dist or 20
+    return Vector3.new(0, dist, dist)
+end
+
 -- Auto Haki: buso is a state flag on the character, not a fire-and-forget call.
 function U.autoHaki()
     local c = U.player.Character
