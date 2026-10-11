@@ -134,18 +134,21 @@ end
 -- All alive enemy models, optionally filtered by name substring.
 function U.mobs(filter)
     local out = {}
-    local e = U.enemies()
-    if not e then return out end
     filter = filter and string.lower(filter)
-    for _, m in ipairs(e:GetChildren()) do
-        local h = m:FindFirstChildOfClass("Humanoid")
-        local hrp = m:FindFirstChild("HumanoidRootPart")
-        if h and hrp and h.Health > 0 and not U.isPlayerModel(m) then
-            if not filter or string.find(string.lower(m.Name), filter, 1, true) then
-                table.insert(out, m)
+    local function scan(container)
+        for _, m in ipairs(container:GetChildren()) do
+            local h = m:FindFirstChildOfClass("Humanoid")
+            local hrp = m:FindFirstChild("HumanoidRootPart")
+            if h and hrp and h.Health > 0 and not U.isPlayerModel(m) then
+                if not filter or string.find(string.lower(m.Name), filter, 1, true) then
+                    table.insert(out, m)
+                end
             end
         end
     end
+    local e = U.enemies()
+    if e then scan(e) end
+    if #out == 0 then scan(U.ReplicatedStorage) end
     return out
 end
 
@@ -160,14 +163,80 @@ function U.nearestMob(filter)
     return best
 end
 
--- Attack helper: activate equipped tool + a virtual click.
+-- Real M1 attack. A bare VirtualUser click does NOT damage enemies in Blox
+-- Fruits; the server only accepts hits fired through RigControllerEvent with
+-- the blade hits from CombatFramework.RigLib (method taken from Redz Hub).
+function U.getBladeHit()
+    local ok, res = pcall(function()
+        local CF = debug.getupvalues(require(U.player.PlayerScripts.CombatFramework))[2]
+        local ac = CF.activeController
+        local weapon = ac.blades[1]
+        if not weapon then return nil end
+        local guard = 0
+        while weapon.Parent ~= U.player.Character and guard < 50 do
+            task.wait(); weapon = weapon.Parent; guard = guard + 1
+        end
+        return weapon
+    end)
+    return ok and res or nil
+end
+
+function U.attackHit(range)
+    return pcall(function()
+        local c = U.player.Character
+        if not c or not c:FindFirstChild("HumanoidRootPart") then return end
+        local rig = U.ReplicatedStorage:FindFirstChild("CombatFramework")
+        rig = rig and rig:FindFirstChild("RigLib")
+        local ev = U.ReplicatedStorage:FindFirstChild("RigControllerEvent")
+        if not rig or not ev then return end
+        local hits = require(rig).getBladeHits(c, { c.HumanoidRootPart }, range or 60)
+        local out, seen = {}, {}
+        for _, v in ipairs(hits) do
+            local par = v.Parent
+            if par and par:FindFirstChild("HumanoidRootPart") and not seen[par] then
+                seen[par] = true
+                table.insert(out, par.HumanoidRootPart)
+            end
+        end
+        if #out > 0 then
+            local w = U.getBladeHit()
+            pcall(function() ev:FireServer("weaponChange", tostring(w)) end)
+            ev:FireServer("hit", out, 1, "")
+        end
+    end)
+end
+
+-- Fast attack: neutralise the CombatFramework cooldowns (Redz method).
+function U.fastAttack()
+    pcall(function()
+        local AC = debug.getupvalues(require(U.player.PlayerScripts.CombatFramework))[2].activeController
+        AC.increment = 3
+        AC.timeToNextAttack = 0
+        AC.timeToNextBlock = 0
+        AC.focusStart = 0
+        AC.attacking = false
+        if AC.humanoid then AC.humanoid.AutoRotate = true end
+        AC.currentAttackTrack = 0
+        if sethiddenproperty then sethiddenproperty(U.player, "SimulationRadius", math.huge) end
+    end)
+end
+
+function U.setHitbox(mag)
+    pcall(function()
+        local AC = debug.getupvalues(require(U.player.PlayerScripts.CombatFramework))[2].activeController
+        AC.hitboxMagnitude = mag
+    end)
+end
+
+-- Attack helper: real hit first, then a virtual tap as a fallback.
 function U.attack()
     local c = U.player.Character
     local tool = c and c:FindFirstChildOfClass("Tool")
     if tool then pcall(function() tool:Activate() end) end
+    U.attackHit(60)
     pcall(function()
         U.VirtualUser:CaptureController()
-        U.VirtualUser:ClickButton1(Vector2.new(0, 0))
+        U.VirtualUser:Button1Down(Vector2.new(math.huge, math.huge))
     end)
 end
 

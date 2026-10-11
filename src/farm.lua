@@ -43,7 +43,8 @@ return function(U, UI, C, win)
         U.applyNoClip(true)                            -- no wall clipping
         r.CFrame = CFrame.new(hrp.Position + Vector3.new(0, 12, 0))
         U.touch(r, hrp)
-        U.attack()                                     -- auto hit
+        U.fastAttack()
+        U.attack()                                     -- real M1 via RigControllerEvent
         task.wait(C.get("farmSpeed") or 0.15)
         return true
     end
@@ -193,6 +194,8 @@ return function(U, UI, C, win)
 
     function M.tick()
         if C.get("noclipAlways") then U.applyNoClip(true) end
+        U.fastAttack()                       -- keep M1 cooldowns at zero
+        if C.get("hitbox") then U.setHitbox(C.get("hitbox")) end
         -- keep the requested weapon equipped
         local w = C.get("weapon")
         if w and w ~= "None" then U.equipWeapon(w) end

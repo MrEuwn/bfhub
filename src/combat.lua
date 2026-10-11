@@ -22,6 +22,9 @@ return function(U, UI, C, win)
     s:toggle("Fast Attack (no cooldown)", false, function(on) fast = on end)
     s:toggle("Kill Aura", false, function(on) aura = on end)
     s:dropdown("Aura Radius", { "20", "30", "50", "80" }, "30", function(v) C.set("auraRadius", tonumber(v)) end)
+    s:dropdown("Hitbox Range", { "40", "60", "80", "120" }, "60", function(v)
+        C.set("hitbox", tonumber(v)); U.setHitbox(tonumber(v))
+    end)
 
     t:section("Survival")
     s:toggle("God Mode", false, function(on) god = on end)
@@ -39,7 +42,7 @@ return function(U, UI, C, win)
     end)
 
     function M.tick()
-        if fast then U.attack() end
+        if fast then U.fastAttack(); U.attackHit(C.get("hitbox") or 60) end
         if aura then
             local r = U.root()
             for _, m in ipairs(nearbyMobs(C.get("auraRadius") or 30)) do
