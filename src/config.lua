@@ -1,22 +1,14 @@
---[[ config.lua - flat state store. Toggle names and defaults are generated from the
-     source hub's own UI spec, so the UI and the feature modules cannot disagree. ]]
+--[[ config.lua - flat state store. Keys and defaults come from the source hub's own
+     UI spec, so a row and its loop can never disagree on a name. ]]
 
 local C = {}
 
 C.values = {
-    stat = "Melee",
-    autostat = false,
-    esp = false,
-    killaura = false,
-    farm = false,
-    hover = true,
-    tween = true,
-    noclip = true,
-    orbit = true,
-    hitbox = 60,
+    -- attack path: "m1" (combat framework) or "net" (RegisterHit remote)
+    method = "m1",
     AimBotSkill = true,
     AntiAFK = true,
-    AttackDistance = true,
+    AttackDistance = false,
     AutoBartiloQuest = false,
     AutoBuyChip = false,
     AutoBuyHakiColor = false,
@@ -25,7 +17,7 @@ C.values = {
     AutoCandy = false,
     AutoChestBypass = false,
     AutoChestTween = false,
-    AutoClick = true,
+    AutoClick = false,
     AutoClickDelay = 0.18,
     AutoCollectYama = false,
     AutoCursedCaptain = false,
@@ -48,11 +40,11 @@ C.values = {
     AutoFarmNearest = false,
     AutoFarmRaid = false,
     AutoFarmSea = false,
-    AutoFarm_Level = true,
+    AutoFarm_Level = false,
     AutoFinishTrial = false,
     AutoGift = false,
     AutoGodHuman = false,
-    AutoHaki = true,
+    AutoHaki = false,
     AutoKenV2 = false,
     AutoKillDonSwan = false,
     AutoKillLawBoss = false,
@@ -85,7 +77,7 @@ C.values = {
     AutoUnlockSaber = false,
     AutoWoodPlanks = false,
     BossSelected = "The Saw",
-    BringMobs = true,
+    BringMobs = false,
     BringMobsDistance = 250,
     EspChests = false,
     EspFlowers = false,
@@ -94,7 +86,7 @@ C.values = {
     EspPlayer = false,
     FarmPos = 20,
     FarmTool = "Melee",
-    FastAttack = true,
+    FastAttack = false,
     FishBoat = true,
     FishCrewMember = true,
     HealthPanic = 25,
@@ -134,22 +126,22 @@ C.values = {
     TradeAzureEmber = false,
     TweenSpeed = 170,
     WalkOnWater = true,
-    attackdist = 60,
     aura = 120,
-    bossselected = "1",
-    clickdelay = 0.18,
-    espplayers = false,
     farmmode = "level",
     heal = false,
+    hover = true,
     island = "1",
+    killaura = false,
     lowend = false,
-    method = "m1",
-    orbiting = true,
+    noclip = true,
+    orbit = true,
     serverid = "",
+    stat = "Melee",
+    tween = true,
     webhook = "",
 }
 
--- chain_<name> and fighter_<name> keys are created on demand by the UI rows
+-- boss_<name> / mob_<name> / chain_<name> / fighter_<name> are created on demand
 function C.get(k) return C.values[k] end
 
 function C.set(k, v)

@@ -64,7 +64,7 @@ local function farmLevel()
     -- clicks only land in range; skip the swing when still far away
     local root, p = U.root(), U.mobPos(mob)
     if root and p and (p.Position - root.Position).Magnitude < 45 then
-        if C.get("method") == "net" then U.netAttack(C.get("hitbox")) else U.attack(C.get("hitbox")) end
+        if C.get("method") == "net" then U.netAttack(C.get("AttackDistance") and 120 or 60) else U.attack(C.get("AttackDistance") and 120 or 60) end
     end
 end
 
@@ -80,7 +80,7 @@ local function farmNearest()
     if C.get("BringMobs") then U.bringMobs(U.baseName(mob.Name)) end
     local root, p = U.root(), U.mobPos(mob)
     if root and p and (p.Position - root.Position).Magnitude < 45 then
-        U.attack(C.get("hitbox"))
+        U.attack(C.get("AttackDistance") and 120 or 60)
     end
 end
 
@@ -99,7 +99,7 @@ local function farmBoss()
     if C.get("BringMobs") then U.bringMobs(name) end
     local root, p = U.root(), U.mobPos(mob)
     if root and p and (p.Position - root.Position).Magnitude < 45 then
-        U.attack(C.get("hitbox"))
+        U.attack(C.get("AttackDistance") and 120 or 60)
     end
 end
 
@@ -114,7 +114,7 @@ local function farmMastery()
     if C.get("BringMobs") then U.bringMobs(U.baseName(mob.Name)) end
     local root, p = U.root(), U.mobPos(mob)
     if root and p and (p.Position - root.Position).Magnitude < 45 then
-        U.attack(C.get("hitbox"))
+        U.attack(C.get("AttackDistance") and 120 or 60)
     end
     if C.get("AutoStats") then
         local pts = U.data("Points")
@@ -125,7 +125,7 @@ end
 function M.tick(_U, _C)
     if not U.alive() then return end
     if C.get("FastAttack") or C.get("AttackDistance") then U.fastAttack() end
-    if C.get("farm") then
+    if C.get("AutoFarm_Level") then
         local mode = C.get("farmmode") or "level"
         if mode == "level" then farmLevel()
         elseif mode == "nearest" then farmNearest()

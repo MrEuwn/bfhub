@@ -97,7 +97,7 @@ end
 
 -- tab modules build their UI only; they are not ticked
 if win then
-    for _, name in ipairs({ "pages", "home" }) do
+    for _, name in ipairs({ "home", "pages" }) do
         local m = load(name)
         if m and m.init then U.safe("init " .. name, function() m.init(U, C, UI, win) end) end
     end
@@ -116,4 +116,4 @@ task.spawn(function()
 end)
 
 U.notify("loaded - RightCtrl to toggle")
-U.log("i", "loaded, " .. #mods .. " feature modules, " .. #(win and win.rows or {}) .. " UI rows")
+U.log("i", "loaded, " .. #mods .. " feature modules, " .. #(win and win.order or {}) .. " tabs")

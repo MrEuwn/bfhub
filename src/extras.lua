@@ -24,7 +24,7 @@ function M.aura()
     local root = U.root()
     if root then root.CFrame = U.mobPos(mob).CFrame + Vector3.new(0, 12, 0) end
     U.equip(C.get("FarmTool"))
-    if C.get("method") == "net" then U.netAttack(C.get("aura")) else U.attack(C.get("aura")) end
+    if C.get("method") == "net" then U.netAttack(120) else U.attack(120) end
 end
 
 -- ESP: reuse the existing tag, never destroy+recreate per tick (main mobile lag source).

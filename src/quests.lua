@@ -45,7 +45,7 @@ local function engage(mob, opts)
     if opts.bring ~= false and C.get("BringMobs") then U.bringMobs(U.baseName(mob.Name)) end
     local root, p = U.root(), U.mobPos(mob)
     if root and p and (p.Position - root.Position).Magnitude < 45 then
-        if C.get("method") == "net" then U.netAttack(C.get("attackdist")) else U.attack(C.get("attackdist")) end
+        if C.get("method") == "net" then U.netAttack(C.get("AttackDistance") and 120 or 60) else U.attack(C.get("AttackDistance") and 120 or 60) end
     end
 end
 

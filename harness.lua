@@ -392,25 +392,17 @@ end
 return U
 ]==]
 FILES["src/config.lua"] = [==[
---[[ config.lua - flat state store. Toggle names and defaults are generated from the
-     source hub's own UI spec, so the UI and the feature modules cannot disagree. ]]
+--[[ config.lua - flat state store. Keys and defaults come from the source hub's own
+     UI spec, so a row and its loop can never disagree on a name. ]]
 
 local C = {}
 
 C.values = {
-    stat = "Melee",
-    autostat = false,
-    esp = false,
-    killaura = false,
-    farm = false,
-    hover = true,
-    tween = true,
-    noclip = true,
-    orbit = true,
-    hitbox = 60,
+    -- attack path: "m1" (combat framework) or "net" (RegisterHit remote)
+    method = "m1",
     AimBotSkill = true,
     AntiAFK = true,
-    AttackDistance = true,
+    AttackDistance = false,
     AutoBartiloQuest = false,
     AutoBuyChip = false,
     AutoBuyHakiColor = false,
@@ -419,7 +411,7 @@ C.values = {
     AutoCandy = false,
     AutoChestBypass = false,
     AutoChestTween = false,
-    AutoClick = true,
+    AutoClick = false,
     AutoClickDelay = 0.18,
     AutoCollectYama = false,
     AutoCursedCaptain = false,
@@ -442,11 +434,11 @@ C.values = {
     AutoFarmNearest = false,
     AutoFarmRaid = false,
     AutoFarmSea = false,
-    AutoFarm_Level = true,
+    AutoFarm_Level = false,
     AutoFinishTrial = false,
     AutoGift = false,
     AutoGodHuman = false,
-    AutoHaki = true,
+    AutoHaki = false,
     AutoKenV2 = false,
     AutoKillDonSwan = false,
     AutoKillLawBoss = false,
@@ -479,7 +471,7 @@ C.values = {
     AutoUnlockSaber = false,
     AutoWoodPlanks = false,
     BossSelected = "The Saw",
-    BringMobs = true,
+    BringMobs = false,
     BringMobsDistance = 250,
     EspChests = false,
     EspFlowers = false,
@@ -488,7 +480,7 @@ C.values = {
     EspPlayer = false,
     FarmPos = 20,
     FarmTool = "Melee",
-    FastAttack = true,
+    FastAttack = false,
     FishBoat = true,
     FishCrewMember = true,
     HealthPanic = 25,
@@ -528,22 +520,22 @@ C.values = {
     TradeAzureEmber = false,
     TweenSpeed = 170,
     WalkOnWater = true,
-    attackdist = 60,
     aura = 120,
-    bossselected = "1",
-    clickdelay = 0.18,
-    espplayers = false,
     farmmode = "level",
     heal = false,
+    hover = true,
     island = "1",
+    killaura = false,
     lowend = false,
-    method = "m1",
-    orbiting = true,
+    noclip = true,
+    orbit = true,
     serverid = "",
+    stat = "Melee",
+    tween = true,
     webhook = "",
 }
 
--- chain_<name> and fighter_<name> keys are created on demand by the UI rows
+-- boss_<name> / mob_<name> / chain_<name> / fighter_<name> are created on demand
 function C.get(k) return C.values[k] end
 
 function C.set(k, v)
@@ -906,8 +898,14 @@ end
 return D
 ]==]
 FILES["src/ui.lua"] = [==[
---[[ ui.lua - raw Instance.new GUI. No UI library on purpose: a library adds
-     hundreds of KB and lags mobile executors. ~400 lines, instant load. ]]
+--[[ ui.lua - raw Instance.new GUI, no library.
+
+     Two things make this load fast:
+       1. tabs are built LAZILY - only Home exists at load, the other pages are
+          constructed the first time they are opened. 150 rows become ~12.
+       2. one flat frame per row, no nested cards/strokes, so the UI tree stays small.
+
+     Minimalist: single accent colour, no gradients, no icons, compact rows. ]]
 
 local UI = {}
 UI.__index = UI
@@ -915,119 +913,95 @@ UI.__index = UI
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
-local ACCENT = Color3.fromRGB(122, 140, 255)
-local CYAN = Color3.fromRGB(120, 220, 220)
-local BG = Color3.fromRGB(22, 23, 28)
-local CARD = Color3.fromRGB(32, 34, 41)
-local TRACK = Color3.fromRGB(52, 55, 66)
-local TXT = Color3.fromRGB(232, 234, 242)
-local DIM = Color3.fromRGB(150, 155, 170)
+local ACCENT = Color3.fromRGB(124, 142, 255)
+local BG     = Color3.fromRGB(19, 20, 24)
+local CARD   = Color3.fromRGB(28, 30, 36)
+local TRACK  = Color3.fromRGB(46, 49, 58)
+local TXT    = Color3.fromRGB(232, 234, 242)
+local DIM    = Color3.fromRGB(138, 143, 158)
 
 local function mk(class, props, parent)
     local i = Instance.new(class)
-    for k, v in pairs(props or {}) do i[k] = v end
+    for k, v in pairs(props) do i[k] = v end
     i.Parent = parent
     return i
 end
 
-local function round(i, r)
-    mk("UICorner", { CornerRadius = UDim.new(0, r or 8) }, i)
+local function corner(i, r)
+    mk("UICorner", { CornerRadius = UDim.new(0, r or 6) }, i)
     return i
 end
 
-local function stroke(i, c, t)
-    mk("UIStroke", { Color = c or TRACK, Thickness = t or 1, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, i)
-    return i
-end
-
--- one scheduler-free tween helper
 local function to(inst, t, props)
-    TweenService:Create(inst, TweenInfo.new(t or 0.15, Enum.EasingStyle.Quad), props):Play()
+    TweenService:Create(inst, TweenInfo.new(t, Enum.EasingStyle.Quad), props):Play()
 end
 
 function UI.new(U, C)
-    local self = setmetatable({ U = U, C = C, tabs = {}, pages = {}, rows = {} }, UI)
+    local self = setmetatable({ U = U, C = C, pages = {}, order = {}, built = {} }, UI)
 
-    -- double-load guard
     local pg = U.LP:FindFirstChild("PlayerGui")
-    local old = pg and pg:FindFirstChild("BFHub")
+    local old = pg and pg:FindFirstChild("RPS")
     if old then old:Destroy() end
 
     local gui = mk("ScreenGui", {
-        Name = "BFHub", ResetOnSpawn = false, DisplayOrder = 999, IgnoreGuiInset = true,
+        Name = "RPS", ResetOnSpawn = false, DisplayOrder = 999, IgnoreGuiInset = true,
     }, pg or game:GetService("CoreGui"))
     self.gui = gui
 
     local main = mk("Frame", {
-        Name = "Main", Size = UDim2.fromOffset(470, 340), Position = UDim2.new(0.5, -235, 0.5, -170),
+        Size = UDim2.fromOffset(430, 300), Position = UDim2.new(0.5, -215, 0.5, -150),
         BackgroundColor3 = BG, BorderSizePixel = 0, Active = true, Draggable = true,
     }, gui)
-    round(main, 12) stroke(main, TRACK)
+    corner(main, 10)
     self.main = main
 
-    -- header ---------------------------------------------------------------
-    local header = mk("Frame", { Size = UDim2.new(1, 0, 0, 40), BackgroundColor3 = CARD, BorderSizePixel = 0 }, main)
-    round(header, 12)
-    mk("Frame", { Size = UDim2.new(1, 0, 0, 12), Position = UDim2.new(0, 0, 1, -12), BackgroundColor3 = CARD, BorderSizePixel = 0 }, header)
-
+    -- header: title + one close button. no subtitle, no search box.
+    local header = mk("Frame", { Size = UDim2.new(1, 0, 0, 32), BackgroundColor3 = CARD, BorderSizePixel = 0 }, main)
+    corner(header, 10)
+    mk("Frame", { Size = UDim2.new(1, 0, 0, 10), Position = UDim2.new(0, 0, 1, -10), BackgroundColor3 = CARD, BorderSizePixel = 0 }, header)
+    mk("Frame", { Size = UDim2.fromOffset(3, 14), Position = UDim2.fromOffset(12, 9), BackgroundColor3 = ACCENT, BorderSizePixel = 0 }, header)
     mk("TextLabel", {
-        Text = "Raf's Personal Script", Font = Enum.Font.GothamBold, TextSize = 15, TextColor3 = TXT,
-        BackgroundTransparency = 1, Position = UDim2.fromOffset(14, 4), Size = UDim2.new(1, -120, 0, 18),
+        Text = "Raf's Personal Script", Font = Enum.Font.GothamMedium, TextSize = 13, TextColor3 = TXT,
+        BackgroundTransparency = 1, Position = UDim2.fromOffset(22, 6), Size = UDim2.new(1, -80, 0, 20),
         TextXAlignment = Enum.TextXAlignment.Left,
     }, header)
-    mk("TextLabel", {
-        Text = "BFHub - keyless", Font = Enum.Font.Gotham, TextSize = 11, TextColor3 = CYAN,
-        BackgroundTransparency = 1, Position = UDim2.fromOffset(14, 21), Size = UDim2.new(1, -120, 0, 14),
-        TextXAlignment = Enum.TextXAlignment.Left,
-    }, header)
-
     local min = mk("TextButton", {
-        Text = "-", Font = Enum.Font.GothamBold, TextSize = 18, TextColor3 = DIM, BackgroundTransparency = 1,
-        Size = UDim2.fromOffset(28, 28), Position = UDim2.new(1, -64, 0, 6),
+        Text = "-", Font = Enum.Font.GothamBold, TextSize = 16, TextColor3 = DIM, BackgroundTransparency = 1,
+        Size = UDim2.fromOffset(26, 26), Position = UDim2.new(1, -56, 0, 3),
     }, header)
     min.MouseButton1Click:Connect(function() self:hide() end)
-
     local kill = mk("TextButton", {
-        Text = "X", Font = Enum.Font.GothamBold, TextSize = 14, TextColor3 = DIM, BackgroundTransparency = 1,
-        Size = UDim2.fromOffset(28, 28), Position = UDim2.new(1, -32, 0, 6),
+        Text = "x", Font = Enum.Font.GothamBold, TextSize = 13, TextColor3 = DIM, BackgroundTransparency = 1,
+        Size = UDim2.fromOffset(26, 26), Position = UDim2.new(1, -28, 0, 3),
     }, header)
     kill.MouseButton1Click:Connect(function() self:destroy() end)
 
-    -- feature search -------------------------------------------------------
-    local search = mk("TextBox", {
-        PlaceholderText = "search...", Font = Enum.Font.Gotham, TextSize = 11, TextColor3 = TXT,
-        PlaceholderColor3 = DIM, BackgroundColor3 = BG, BorderSizePixel = 0, ClearTextOnFocus = false,
-        Size = UDim2.fromOffset(96, 22), Position = UDim2.new(1, -170, 0, 9),
-    }, header)
-    round(search, 6) stroke(search)
-    search:GetPropertyChangedSignal("Text"):Connect(function() self:filter(search.Text) end)
-
-    -- tab rail: a ScrollingFrame, NOT a Frame - a Frame silently clips tab 10+
+    -- tab rail: 100px, plain buttons, no icons
     local rail = mk("ScrollingFrame", {
-        Size = UDim2.new(0, 124, 1, -50), Position = UDim2.fromOffset(10, 46), BackgroundTransparency = 1,
-        BorderSizePixel = 0, ScrollBarThickness = 4, ScrollingDirection = Enum.ScrollingDirection.Y,
+        Size = UDim2.new(0, 100, 1, -42), Position = UDim2.fromOffset(8, 40), BackgroundTransparency = 1,
+        BorderSizePixel = 0, ScrollBarThickness = 3, ScrollingDirection = Enum.ScrollingDirection.Y,
         CanvasSize = UDim2.new(0, 0, 0, 0), AutomaticCanvasSize = Enum.AutomaticSize.Y,
         ScrollBarImageColor3 = TRACK,
     }, main)
-    mk("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }, rail)
+    mk("UIListLayout", { Padding = UDim.new(0, 3) }, rail)
     self.rail = rail
 
     local body = mk("ScrollingFrame", {
-        Size = UDim2.new(1, -144, 1, -50), Position = UDim2.new(0, 134, 0, 46), BackgroundTransparency = 1,
-        BorderSizePixel = 0, ScrollBarThickness = 6, ScrollingDirection = Enum.ScrollingDirection.Y,
+        Size = UDim2.new(1, -116, 1, -42), Position = UDim2.new(0, 108, 0, 40), BackgroundTransparency = 1,
+        BorderSizePixel = 0, ScrollBarThickness = 5, ScrollingDirection = Enum.ScrollingDirection.Y,
         CanvasSize = UDim2.new(0, 0, 0, 0), AutomaticCanvasSize = Enum.AutomaticSize.Y,
         ScrollBarImageColor3 = ACCENT, ClipsDescendants = true,
     }, main)
-    mk("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, body)
+    mk("UIListLayout", { Padding = UDim.new(0, 6) }, body)
     self.body = body
 
-    -- floating restore button ---------------------------------------------
+    -- floating restore button
     local fab = mk("TextButton", {
-        Name = "FAB", Text = "B", Font = Enum.Font.GothamBold, TextSize = 18, TextColor3 = TXT,
-        BackgroundColor3 = ACCENT, Size = UDim2.fromOffset(52, 52), Position = UDim2.new(0, 16, 0.5, -26),
-        Visible = false, AutoButtonColor = true,
+        Name = "FAB", Text = "R", Font = Enum.Font.GothamBold, TextSize = 15, TextColor3 = TXT,
+        BackgroundColor3 = ACCENT, Size = UDim2.fromOffset(46, 46), Position = UDim2.new(0, 14, 0.5, -23),
+        Visible = false,
     }, gui)
-    round(fab, 26)
+    corner(fab, 23)
     fab.Draggable = true
     fab.MouseButton1Click:Connect(function() self:show() end)
     self.fab = fab
@@ -1039,7 +1013,6 @@ function UI.new(U, C)
     return self
 end
 
--- window state -------------------------------------------------------------
 function UI:show() self.main.Visible = true self.fab.Visible = false end
 function UI:hide() self.main.Visible = false self.fab.Visible = true end
 function UI:toggle() self.main.Visible = not self.main.Visible self.fab.Visible = not self.main.Visible end
@@ -1049,41 +1022,52 @@ function UI:destroy()
 end
 
 -- tabs ---------------------------------------------------------------------
-function UI:tab(name)
+-- builder runs on FIRST open only: that is what keeps the load instant.
+function UI:tab(name, builder)
     if self.pages[name] then return self.pages[name] end
+
     local btn = mk("TextButton", {
-        Text = name, Font = Enum.Font.GothamMedium, TextSize = 12, TextColor3 = DIM,
-        BackgroundColor3 = CARD, BorderSizePixel = 0, Size = UDim2.new(1, -8, 0, 32),
+        Text = name, Font = Enum.Font.Gotham, TextSize = 11, TextColor3 = DIM,
+        BackgroundColor3 = CARD, BorderSizePixel = 0, Size = UDim2.new(1, -6, 0, 26),
         AutoButtonColor = false,
     }, self.rail)
-    round(btn, 8)
+    corner(btn, 6)
     local bar = mk("Frame", {
-        Size = UDim2.new(0, 3, 0.6, 0), Position = UDim2.new(0, 0, 0.2, 0),
+        Size = UDim2.new(0, 2, 0.5, 0), Position = UDim2.new(0, 0, 0.25, 0),
         BackgroundColor3 = ACCENT, BorderSizePixel = 0, Visible = false,
     }, btn)
-    round(bar, 2)
+    corner(bar, 1)
 
     local page = mk("Frame", {
-        Size = UDim2.new(1, -6, 0, 0), BackgroundTransparency = 1, BorderSizePixel = 0,
+        Size = UDim2.new(1, -4, 0, 0), BackgroundTransparency = 1, BorderSizePixel = 0,
         Visible = false, AutomaticSize = Enum.AutomaticSize.Y,
     }, self.body)
-    mk("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, page)
+    mk("UIListLayout", { Padding = UDim.new(0, 6) }, page)
 
-    local entry = { btn = btn, bar = bar, page = page }
+    local entry = { btn = btn, bar = bar, page = page, builder = builder }
     self.pages[name] = entry
+    table.insert(self.order, name)
     btn.MouseButton1Click:Connect(function() self:select(name) end)
     if not self.current then self:select(name) end
     return page
 end
 
 function UI:select(name)
+    local e = self.pages[name]
+    if not e then return end
+    -- lazy build, once
+    if e.builder and not self.built[name] then
+        self.built[name] = true
+        local ok, err = pcall(e.builder, e.page)
+        if not ok then self.U.log("x", "tab " .. name .. ": " .. tostring(err)) end
+    end
     self.current = name
-    for n, e in pairs(self.pages) do
+    for n, p in pairs(self.pages) do
         local on = n == name
-        e.page.Visible = on
-        e.bar.Visible = on
-        e.btn.TextColor3 = on and TXT or DIM
-        e.btn.BackgroundColor3 = on and TRACK or CARD
+        p.page.Visible = on
+        p.bar.Visible = on
+        p.btn.TextColor3 = on and TXT or DIM
+        p.btn.BackgroundColor3 = on and TRACK or CARD
     end
     self.body.CanvasPosition = Vector2.zero
 end
@@ -1091,149 +1075,115 @@ end
 -- widgets ------------------------------------------------------------------
 function UI:card(page, title)
     local card = mk("Frame", {
-        Size = UDim2.new(1, -6, 0, 0), BackgroundColor3 = CARD, BorderSizePixel = 0,
+        Size = UDim2.new(1, -4, 0, 0), BackgroundColor3 = CARD, BorderSizePixel = 0,
         AutomaticSize = Enum.AutomaticSize.Y,
     }, page)
-    round(card, 10) stroke(card)
-    mk("UIPadding", { PaddingTop = UDim.new(0, 8), PaddingBottom = UDim.new(0, 8), PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) }, card)
-    mk("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }, card)
+    corner(card, 8)
+    mk("UIPadding", {
+        PaddingTop = UDim.new(0, 6), PaddingBottom = UDim.new(0, 6),
+        PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8),
+    }, card)
+    mk("UIListLayout", { Padding = UDim.new(0, 4) }, card)
     if title then
         mk("TextLabel", {
-            Text = string.upper(title), Font = Enum.Font.GothamBold, TextSize = 11, TextColor3 = CYAN,
-            BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 14), TextXAlignment = Enum.TextXAlignment.Left,
+            Text = string.upper(title), Font = Enum.Font.GothamBold, TextSize = 10, TextColor3 = ACCENT,
+            BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 12), TextXAlignment = Enum.TextXAlignment.Left,
         }, card)
     end
     return card
 end
 
-local function row(parent, title, caption)
-    local f = mk("Frame", { Size = UDim2.new(1, 0, 0, caption and 34 or 22), BackgroundTransparency = 1 }, parent)
-    mk("TextLabel", {
-        Text = title, Font = Enum.Font.GothamMedium, TextSize = 12, TextColor3 = TXT,
-        BackgroundTransparency = 1, Size = UDim2.new(1, -70, 0, 16), TextXAlignment = Enum.TextXAlignment.Left,
+local function rowFrame(parent, h)
+    return mk("Frame", { Size = UDim2.new(1, 0, 0, h or 18), BackgroundTransparency = 1 }, parent)
+end
+
+local function rowText(f, title)
+    return mk("TextLabel", {
+        Text = title, Font = Enum.Font.Gotham, TextSize = 11, TextColor3 = TXT,
+        BackgroundTransparency = 1, Size = UDim2.new(1, -54, 1, 0), TextXAlignment = Enum.TextXAlignment.Left,
         TextTruncate = Enum.TextTruncate.AtEnd,
     }, f)
-    if caption then
-        mk("TextLabel", {
-            Text = caption, Font = Enum.Font.Gotham, TextSize = 10, TextColor3 = DIM,
-            BackgroundTransparency = 1, Position = UDim2.fromOffset(0, 16), Size = UDim2.new(1, -70, 0, 14),
-            TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
-        }, f)
-    end
-    return f
 end
 
-function UI:row(parent, title, caption)
-    local f = row(parent, title, caption)
-    table.insert(self.rows, { frame = f, title = string.lower(title) })
-    return f
-end
-
-function UI:toggle(parent, title, caption, key)
-    local f = self:row(parent, title, caption)
+function UI:toggle(parent, title, key)
+    local f = rowFrame(parent, 18)
+    rowText(f, title)
     local track = mk("Frame", {
-        Size = UDim2.fromOffset(40, 20), Position = UDim2.new(1, -42, 0, 1),
+        Size = UDim2.fromOffset(34, 18), Position = UDim2.new(1, -36, 0, 0),
         BackgroundColor3 = self.C.get(key) and ACCENT or TRACK, BorderSizePixel = 0,
     }, f)
-    round(track, 10)
+    corner(track, 9)
     local knob = mk("Frame", {
-        Size = UDim2.fromOffset(16, 16), Position = self.C.get(key) and UDim2.fromOffset(22, 2) or UDim2.fromOffset(2, 2),
+        Size = UDim2.fromOffset(14, 14),
+        Position = self.C.get(key) and UDim2.fromOffset(18, 2) or UDim2.fromOffset(2, 2),
         BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0,
     }, track)
-    round(knob, 8)
+    corner(knob, 7)
     local btn = mk("TextButton", { Text = "", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1) }, f)
     btn.MouseButton1Click:Connect(function()
         local on = self.C.toggle(key)
-        to(track, 0.15, { BackgroundColor3 = on and ACCENT or TRACK })
-        to(knob, 0.15, { Position = on and UDim2.fromOffset(22, 2) or UDim2.fromOffset(2, 2) })
+        to(track, 0.12, { BackgroundColor3 = on and ACCENT or TRACK })
+        to(knob, 0.12, { Position = on and UDim2.fromOffset(18, 2) or UDim2.fromOffset(2, 2) })
     end)
     return f
 end
 
 function UI:slider(parent, title, key, min, max, step)
     step = step or 1
-    local f = self:row(parent, title .. ": " .. tostring(self.C.get(key)))
+    local f = rowFrame(parent, 26)
+    local label = rowText(f, title)
     local bar = mk("Frame", {
-        Size = UDim2.new(1, -10, 0, 8), Position = UDim2.new(0, 0, 0, 14),
+        Size = UDim2.new(1, -4, 0, 4), Position = UDim2.new(0, 0, 0, 18),
         BackgroundColor3 = TRACK, BorderSizePixel = 0,
     }, f)
-    round(bar, 4)
+    corner(bar, 2)
     local fill = mk("Frame", { Size = UDim2.new(0, 0, 1, 0), BackgroundColor3 = ACCENT, BorderSizePixel = 0 }, bar)
-    round(fill, 4)
-    local label = f:FindFirstChildOfClass("TextLabel")
+    corner(fill, 2)
     local function apply(x)
-        local a = math.clamp((x - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+        local a = math.clamp((x - bar.AbsolutePosition.X) / math.max(bar.AbsoluteSize.X, 1), 0, 1)
         local v = math.floor((min + (max - min) * a) / step + 0.5) * step
         self.C.set(key, v)
         fill.Size = UDim2.new(a, 0, 1, 0)
         label.Text = title .. ": " .. tostring(v)
     end
+    local v0 = self.C.get(key) or min
+    label.Text = title .. ": " .. tostring(v0)
+    fill.Size = UDim2.new((v0 - min) / math.max(max - min, 1), 0, 1, 0)
     local dragging = false
     local hit = mk("TextButton", { Text = "", BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0) }, bar)
     hit.MouseButton1Down:Connect(function() dragging = true apply(UIS:GetMouseLocation().X) end)
     hit.MouseButton1Up:Connect(function() dragging = false end)
-    hit.TouchLongPress:Connect(function() dragging = true end)
     UIS.InputChanged:Connect(function(i)
-        local t = i.UserInputType
-        if dragging and (t == Enum.UserInputType.MouseMovement or t == Enum.UserInputType.Touch) then
-            apply(i.Position.X)
-        end
+        if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then apply(i.Position.X) end
     end)
-    -- initial fill
-    local v0 = self.C.get(key)
-    fill.Size = UDim2.new((v0 - min) / (max - min), 0, 1, 0)
     return f
 end
 
-function UI:button(parent, title, caption, fn)
-    local f = self:row(parent, title, caption)
-    local btn = mk("TextButton", { Text = "", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1) }, f)
-    btn.MouseButton1Click:Connect(function() self.U.safe(title, fn) end)
-    local go = mk("TextLabel", {
-        Text = ">", Font = Enum.Font.GothamBold, TextSize = 13, TextColor3 = ACCENT,
-        BackgroundTransparency = 1, Size = UDim2.fromOffset(20, 20), Position = UDim2.new(1, -22, 0, 1),
-    }, f)
-    return f, go
-end
-
-function UI:label(parent, text, color)
-    return mk("TextLabel", {
-        Text = text, Font = Enum.Font.Gotham, TextSize = 11, TextColor3 = color or DIM,
-        BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
-        TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left,
-    }, parent)
-end
-
--- dropdown: an inline popup list. A cycle button would be cheaper but a 15-item
--- boss list is unusable that way on a phone.
 function UI:dropdown(parent, title, key, values)
-    local f = self:row(parent, title .. ": " .. tostring(self.C.get(key)))
-    local label = f:FindFirstChildOfClass("TextLabel")
+    local f = rowFrame(parent, 18)
+    local label = rowText(f, title .. ": " .. tostring(self.C.get(key)))
     local btn = mk("TextButton", { Text = "", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1) }, f)
-    local open = false
     local list
     btn.MouseButton1Click:Connect(function()
-        if open and list then list:Destroy() list = nil open = false return end
-        open = true
+        if list then list:Destroy() list = nil return end
         list = mk("ScrollingFrame", {
-            Size = UDim2.new(1, -20, 0, math.min(#values * 22 + 8, 180)), BackgroundColor3 = BG,
-            BorderSizePixel = 0, ScrollBarThickness = 4, ScrollingDirection = Enum.ScrollingDirection.Y,
+            Size = UDim2.new(1, -14, 0, math.min(#values * 18 + 6, 150)), BackgroundColor3 = BG,
+            BorderSizePixel = 0, ScrollBarThickness = 3, ScrollingDirection = Enum.ScrollingDirection.Y,
             AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(0, 0, 0, 0),
         }, parent)
-        round(list, 8) stroke(list)
-        mk("UIListLayout", { Padding = UDim.new(0, 2) }, list)
+        corner(list, 6)
+        mk("UIListLayout", { Padding = UDim.new(0, 1) }, list)
         for _, v in ipairs(values) do
             local b = mk("TextButton", {
-                Text = tostring(v), Font = Enum.Font.Gotham, TextSize = 11, TextColor3 = TXT,
-                BackgroundColor3 = CARD, BorderSizePixel = 0, Size = UDim2.new(1, -8, 0, 20),
+                Text = tostring(v), Font = Enum.Font.Gotham, TextSize = 10, TextColor3 = TXT,
+                BackgroundColor3 = CARD, BorderSizePixel = 0, Size = UDim2.new(1, -6, 0, 17),
                 TextXAlignment = Enum.TextXAlignment.Left,
             }, list)
-            round(b, 4)
+            corner(b, 3)
             b.MouseButton1Click:Connect(function()
                 self.C.set(key, v)
                 label.Text = title .. ": " .. tostring(v)
                 if list then list:Destroy() list = nil end
-                open = false
             end)
         end
     end)
@@ -1241,26 +1191,37 @@ function UI:dropdown(parent, title, key, values)
 end
 
 function UI:textbox(parent, title, key, placeholder)
-    local f = self:row(parent, title)
+    local f = rowFrame(parent, 34)
+    rowText(f, title)
     local box = mk("TextBox", {
         Text = tostring(self.C.get(key) or ""), PlaceholderText = placeholder or "",
-        Font = Enum.Font.Gotham, TextSize = 11, TextColor3 = TXT, PlaceholderColor3 = DIM,
+        Font = Enum.Font.Gotham, TextSize = 10, TextColor3 = TXT, PlaceholderColor3 = DIM,
         BackgroundColor3 = BG, BorderSizePixel = 0, ClearTextOnFocus = false,
-        Size = UDim2.new(1, -10, 0, 20), Position = UDim2.new(0, 0, 0, 14),
+        Size = UDim2.new(1, -4, 0, 18), Position = UDim2.new(0, 0, 0, 15),
     }, f)
-    round(box, 5) stroke(box)
+    corner(box, 4)
     box:GetPropertyChangedSignal("Text"):Connect(function() self.C.set(key, box.Text) end)
     return f
 end
 
-function UI:filter(q)
-    q = string.lower(q or "")
-    for _, r in ipairs(self.rows) do
-        r.frame.Visible = q == "" or string.find(r.title, q, 1, true) ~= nil
-    end
+function UI:button(parent, title, fn)
+    local f = rowFrame(parent, 18)
+    local label = rowText(f, title)
+    label.TextColor3 = ACCENT
+    local btn = mk("TextButton", { Text = "", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1) }, f)
+    btn.MouseButton1Click:Connect(function() self.U.safe(title, fn) end)
+    return f
 end
 
--- live debug panel ---------------------------------------------------------
+function UI:label(parent, text, color)
+    return mk("TextLabel", {
+        Text = text, Font = Enum.Font.Gotham, TextSize = 10, TextColor3 = color or DIM,
+        BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
+        TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left,
+    }, parent)
+end
+
+-- live debug panel (3 numbers, no labels on separate rows)
 function UI:debug(page, U, C)
     local card = self:card(page, "Debug")
     local l1 = self:label(card, "")
@@ -1269,8 +1230,8 @@ function UI:debug(page, U, C)
     task.spawn(function()
         while self.gui.Parent do
             local fps = math.floor(1 / math.max(game:GetService("RunService").Heartbeat:Wait(), 1e-3))
-            l1.Text = string.format("FPS %d   PING %d ms", fps, math.floor(U.LP:GetNetworkPing() * 1000))
-            l2.Text = string.format("LV %d   UPTIME %d s   MOBS %d", U.level(), math.floor(os.clock() - t0), #U.mobs())
+            l1.Text = string.format("FPS %d   PING %d ms   MOBS %d", fps, math.floor(U.LP:GetNetworkPing() * 1000), #U.mobs())
+            l2.Text = string.format("LV %d   SEA %s   UPTIME %ds", U.level(), tostring(U.sea), math.floor(os.clock() - t0))
             task.wait(0.5)
         end
     end)
@@ -1346,7 +1307,7 @@ local function farmLevel()
     -- clicks only land in range; skip the swing when still far away
     local root, p = U.root(), U.mobPos(mob)
     if root and p and (p.Position - root.Position).Magnitude < 45 then
-        if C.get("method") == "net" then U.netAttack(C.get("hitbox")) else U.attack(C.get("hitbox")) end
+        if C.get("method") == "net" then U.netAttack(C.get("AttackDistance") and 120 or 60) else U.attack(C.get("AttackDistance") and 120 or 60) end
     end
 end
 
@@ -1362,7 +1323,7 @@ local function farmNearest()
     if C.get("BringMobs") then U.bringMobs(U.baseName(mob.Name)) end
     local root, p = U.root(), U.mobPos(mob)
     if root and p and (p.Position - root.Position).Magnitude < 45 then
-        U.attack(C.get("hitbox"))
+        U.attack(C.get("AttackDistance") and 120 or 60)
     end
 end
 
@@ -1381,7 +1342,7 @@ local function farmBoss()
     if C.get("BringMobs") then U.bringMobs(name) end
     local root, p = U.root(), U.mobPos(mob)
     if root and p and (p.Position - root.Position).Magnitude < 45 then
-        U.attack(C.get("hitbox"))
+        U.attack(C.get("AttackDistance") and 120 or 60)
     end
 end
 
@@ -1396,7 +1357,7 @@ local function farmMastery()
     if C.get("BringMobs") then U.bringMobs(U.baseName(mob.Name)) end
     local root, p = U.root(), U.mobPos(mob)
     if root and p and (p.Position - root.Position).Magnitude < 45 then
-        U.attack(C.get("hitbox"))
+        U.attack(C.get("AttackDistance") and 120 or 60)
     end
     if C.get("AutoStats") then
         local pts = U.data("Points")
@@ -1407,7 +1368,7 @@ end
 function M.tick(_U, _C)
     if not U.alive() then return end
     if C.get("FastAttack") or C.get("AttackDistance") then U.fastAttack() end
-    if C.get("farm") then
+    if C.get("AutoFarm_Level") then
         local mode = C.get("farmmode") or "level"
         if mode == "level" then farmLevel()
         elseif mode == "nearest" then farmNearest()
@@ -1467,7 +1428,7 @@ local function engage(mob, opts)
     if opts.bring ~= false and C.get("BringMobs") then U.bringMobs(U.baseName(mob.Name)) end
     local root, p = U.root(), U.mobPos(mob)
     if root and p and (p.Position - root.Position).Magnitude < 45 then
-        if C.get("method") == "net" then U.netAttack(C.get("attackdist")) else U.attack(C.get("attackdist")) end
+        if C.get("method") == "net" then U.netAttack(C.get("AttackDistance") and 120 or 60) else U.attack(C.get("AttackDistance") and 120 or 60) end
     end
 end
 
@@ -1699,7 +1660,7 @@ function M.aura()
     local root = U.root()
     if root then root.CFrame = U.mobPos(mob).CFrame + Vector3.new(0, 12, 0) end
     U.equip(C.get("FarmTool"))
-    if C.get("method") == "net" then U.netAttack(C.get("aura")) else U.attack(C.get("aura")) end
+    if C.get("method") == "net" then U.netAttack(120) else U.attack(120) end
 end
 
 -- ESP: reuse the existing tag, never destroy+recreate per tick (main mobile lag source).
@@ -1934,11 +1895,11 @@ end
 return M
 ]==]
 FILES["src/pages.lua"] = [==[
---[[ pages.lua - every tab. UI only: each row writes into the shared config store
-     that farm.lua / quests.lua / extras.lua read each tick.
+--[[ pages.lua - every tab, built lazily by ui.lua (a page is constructed the first
+     time it is opened, so load stays instant).
 
-     Feature switches live in the Features tab; the source hub had them spread over
-     its own tabs, but one flat list is easier to search on a phone. ]]
+     Only Redz V2 features live here. Everything is grouped the way the source
+     grouped it, minus the rows the source itself shipped as dead. ]]
 
 local M = {}
 local U, C, UI, win, D
@@ -1948,224 +1909,252 @@ function M.init(_U, _C, _UI, _w, deps)
     D = deps and deps.D
 
     -- FARM ------------------------------------------------------------------
-    local p = win:tab("Farm")
-    local c = win:card(p, "Auto Farm")
-    win:toggle(c, "Auto Farm Level", "accept the quest, travel, bring, hit", "AutoFarm_Level")
-    win:dropdown(c, "Mode", "farmmode", { "level", "nearest", "boss", "mastery" })
-    win:dropdown(c, "Weapon", "FarmTool", { "Melee", "Sword", "Gun", "Blox Fruit" })
-    win:slider(c, "Farm Distance", "FarmPos", 5, 60, 1)
-    win:toggle(c, "Orbit Target", "circle the mob so hits keep landing", "orbit")
-    win:toggle(c, "Bring Mobs", "pin mobs + enlarge hitbox", "BringMobs")
-    win:slider(c, "Bring Distance", "BringMobsDistance", 50, 500, 10)
-    win:toggle(c, "Auto Farm Nearest", "no quest, closest mob", "AutoFarmNearest")
+    win:tab("Farm", function(page)
+        local c = win:card(page, "Auto Farm")
+        win:toggle(c, "Auto Farm Level", "AutoFarm_Level")
+        win:dropdown(c, "Mode", "farmmode", { "level", "nearest", "boss", "mastery" })
+        win:dropdown(c, "Weapon", "FarmTool", { "Melee", "Sword", "Gun", "Blox Fruit" })
+        win:slider(c, "Farm Distance", "FarmPos", 5, 60, 1)
+        win:toggle(c, "Bring Mobs", "BringMobs")
+        win:slider(c, "Bring Distance", "BringMobsDistance", 50, 500, 10)
+        win:toggle(c, "Auto Farm Nearest", "AutoFarmNearest")
 
-    c = win:card(p, "Travel")
-    win:toggle(c, "Tween Travel", "smooth flight instead of instant teleport", "tween")
-    win:slider(c, "Tween Speed", "TweenSpeed", 60, 400, 10)
-    win:toggle(c, "Fly / Hover", "hold position above the mob", "hover")
-    win:toggle(c, "NoClip", nil, "noclip")
-    win:button(c, "STOP TWEEN", "kill-switch for a stuck tween", function() U.stopTween() end)
+        c = win:card(page, "Travel")
+        win:toggle(c, "Tween Travel", "tween")
+        win:slider(c, "Tween Speed", "TweenSpeed", 60, 400, 10)
+        win:toggle(c, "NoClip", "noclip")
+        win:button(c, "STOP TWEEN", function() U.stopTween() end)
 
-    c = win:card(p, "Boss")
-    win:dropdown(c, "Boss List", "BossSelected", D and D.bossList[U.sea] or {})
-    win:toggle(c, "Auto Farm Boss Selected", nil, "boss_BossSelected")
-    win:toggle(c, "Auto Farm All Boss", "sweeps the boss list", "KillAllBosses")
-    win:toggle(c, "Take Boss Quest", "accept the boss quest first", "TakeQuestBoss")
+        c = win:card(page, "Boss")
+        win:dropdown(c, "Boss List", "BossSelected", D.bossList[U.sea] or {})
+        win:toggle(c, "Auto Farm Boss Selected", "boss_BossSelected")
+        win:toggle(c, "Auto Farm All Boss", "KillAllBosses")
+        win:toggle(c, "Take Boss Quest", "TakeQuestBoss")
+    end)
 
     -- COMBAT ----------------------------------------------------------------
-    p = win:tab("Combat")
-    c = win:card(p, "Attack")
-    win:toggle(c, "Fast Attack", "zero cooldowns, real credited M1", "FastAttack")
-    win:toggle(c, "Auto Click", nil, "AutoClick")
-    win:slider(c, "Hitbox Range", "hitbox", 20, 200, 5)
-    win:slider(c, "Click Delay", "AutoClickDelay", 0.05, 1, 0.01)
-    win:button(c, "Attack Method", "tap to switch m1 <-> net remote", function()
-        C.set("method", C.get("method") == "m1" and "net" or "m1")
-        U.notify("attack method: " .. C.get("method"))
+    win:tab("Combat", function(page)
+        local c = win:card(page, "Attack")
+        win:toggle(c, "Fast Attack", "FastAttack")
+        win:toggle(c, "Auto Click", "AutoClick")
+        win:toggle(c, "Attack Distance", "AttackDistance")
+        win:slider(c, "Click Delay", "AutoClickDelay", 0.05, 1, 0.01)
+        win:button(c, "Attack Method: m1", function()
+            C.set("method", C.get("method") == "m1" and "net" or "m1")
+            U.notify("attack method: " .. C.get("method"))
+        end)
+
+        c = win:card(page, "Kill Aura")
+        win:toggle(c, "Kill Aura", "killaura")
+        win:slider(c, "Aura Range", "aura", 40, 300, 10)
+        win:label(c, "instakill is off the table: writing Health client-side pays nothing", Color3.fromRGB(220, 140, 140))
+
+        c = win:card(page, "Skills")
+        win:toggle(c, "AimBot Skill Enemy", "AimBotSkill")
+        win:toggle(c, "Skill Z", "SkillZ")
+        win:toggle(c, "Skill X", "SkillX")
+        win:toggle(c, "Skill C", "SkillC")
+        win:toggle(c, "Skill V", "SkillV")
+        win:toggle(c, "Skill F", "SkillF")
+        win:slider(c, "Health Cutoff", "HealthSkill", 10, 100, 5)
+
+        c = win:card(page, "Haki / Heal")
+        win:toggle(c, "Auto Haki (Buso + Ken)", "AutoHaki")
+        win:toggle(c, "Heal When Low", "heal")
     end)
 
-    c = win:card(p, "Kill Aura")
-    win:toggle(c, "Kill Aura", "long-range M1, snaps onto the mob first", "killaura")
-    win:slider(c, "Aura Range", "aura", 40, 300, 10)
-    win:label(c, "Instakill is not offered: writing Health client-side gives no money/exp.", Color3.fromRGB(230, 150, 150))
-
-    c = win:card(p, "Skills")
-    win:toggle(c, "AimBot Skill Enemy", "face the mob before firing skills", "AimBotSkill")
-    win:toggle(c, "Skill Z", nil, "SkillZ")
-    win:toggle(c, "Skill X", nil, "SkillX")
-    win:toggle(c, "Skill C", nil, "SkillC")
-    win:toggle(c, "Skill V", nil, "SkillV")
-    win:toggle(c, "Skill F", nil, "SkillF")
-    win:slider(c, "Skill Health Cutoff", "HealthSkill", 10, 100, 5)
-
-    c = win:card(p, "Haki / Heal")
-    win:toggle(c, "Auto Buso", nil, "AutoHaki")
-    win:toggle(c, "Auto Ken", nil, "AutoKenV2")
-    win:toggle(c, "Heal When Low", "under 30% HP", "heal")
-
-    -- STATS ----------------------------------------------------------------
-    p = win:tab("Stats")
-    c = win:card(p, "Mastery")
-    win:toggle(c, "Auto Farm Mastery", "grind the equipped tool", "AutoFarmMastery")
-    win:dropdown(c, "Tool", "ToolMastery", { "Blox Fruit", "Melee", "Sword", "Gun" })
-    win:slider(c, "Stop At", "AutoMasteryValue", 100, 600, 50)
-    c = win:card(p, "Stat Points")
-    win:toggle(c, "Auto Stats", "spend points as they arrive", "AutoStats")
-    win:button(c, "Stat", "tap to cycle Melee/Sword/Gun/Defense/Blox Fruit", function()
-        local order = { "Melee", "Sword", "Gun", "Defense", "Blox Fruit" }
-        for i, s in ipairs(order) do
-            if s == C.get("stat") then C.set("stat", order[i % #order + 1]) return U.notify("stat: " .. C.get("stat")) end
+    -- FARMING (the named farmers from the source) ---------------------------
+    win:tab("Farming", function(page)
+        local c = win:card(page, "Bosses")
+        for _, name in ipairs({ "The Saw", "Thunder God", "Cursed Captain", "Don Swan",
+                               "Darkbeard", "rip_indra True Form", "Soul Reaper", "Order" }) do
+            win:toggle(c, "Auto " .. name, "boss_" .. name)
         end
-        C.set("stat", "Melee")
+
+        c = win:card(page, "Mobs / Materials")
+        win:toggle(c, "Auto Farm Bone", "mob_Bone")
+        win:toggle(c, "Auto Farm Ectoplasm", "mob_Ectoplasm")
+        win:toggle(c, "Auto Farm Candy", "mob_Candy")
+        win:toggle(c, "Auto Pirates Sea", "mob_Pirates Sea")
+        win:toggle(c, "Auto Factory", "mob_Factory")
+        win:toggle(c, "Auto Rengoku", "mob_Rengoku")
+        win:toggle(c, "Auto Tushita", "mob_Tushita")
+        win:dropdown(c, "Material", "MaterialSelected", D.materials[U.sea] or {})
+        win:toggle(c, "Auto Farm Material", "mob_Material")
+
+        c = win:card(page, "Mastery")
+        win:toggle(c, "Auto Farm Mastery", "AutoFarmMastery")
+        win:dropdown(c, "Tool", "ToolMastery", { "Blox Fruit", "Melee", "Sword", "Gun" })
+        win:slider(c, "Stop At", "AutoMasteryValue", 100, 600, 50)
+
+        c = win:card(page, "Fighting Styles")
+        for _, f in ipairs(D.fighters) do
+            win:toggle(c, "Auto " .. f[1], "fighter_" .. f[1])
+        end
     end)
-    win:button(c, "Check Boost", "read your current boosts", function()
-        local r = U.F("CheckBoost")
-        U.log("i", "boost: " .. tostring(r))
-        U.notify("boost -> Log tab")
+
+    -- QUESTS ----------------------------------------------------------------
+    win:tab("Quests", function(page)
+        local c = win:card(page, "Unlocks")
+        for _, key in ipairs({ "Ken V2", "Musketeer Hat", "Saber", "Rainbow Haki",
+                               "Soul Guitar", "Race V2", "Second Sea", "Third Sea" }) do
+            win:toggle(c, "Auto " .. key, "chain_" .. key)
+        end
+        c = win:card(page, "Elite Hunter")
+        win:toggle(c, "Auto Elite Hunter", "chain_Elite Hunter")
+        win:toggle(c, "Hop If Not Spawned", "AutoEliteHunterHop")
+        c = win:card(page, "Server Hop")
+        win:toggle(c, "Hop If Don Swan", "AutoDonSwanHop")
+        win:toggle(c, "Hop If Rengoku", "AutoRengokuHop")
+        win:toggle(c, "Hop If Tushita", "AutoTushitaHop")
+        win:toggle(c, "Hop If Rainbow Haki", "RainbowHakiHop")
+        win:button(c, "Server Hop Now", function() M.serverHop() end)
+        c = win:card(page, "Race")
+        win:button(c, "Race Reroll", function() U.F("BlackbeardReward", "Reroll", "1") end)
+        win:button(c, "Race Reroll (2)", function() U.F("BlackbeardReward", "Reroll", "2") end)
+        win:button(c, "Stat Refund", function() U.F("BlackbeardReward", "Refund", "1") end)
     end)
-    c = win:card(p, "Race")
-    win:toggle(c, "Auto Race V2", "the Alchemist race quest", "chain_Race V2")
-    win:button(c, "Race Reroll", "BlackbeardReward reroll 1", function() U.F("BlackbeardReward", "Reroll", "1") end)
-    win:button(c, "Race Reroll (2)", "second reroll slot", function() U.F("BlackbeardReward", "Reroll", "2") end)
-    win:button(c, "Stat Refund", "BlackbeardReward refund", function() U.F("BlackbeardReward", "Refund", "1") end)
 
-    -- FEATURES --------------------------------------------------------------
-    p = win:tab("Features")
-    c = win:card(p, "Bosses")
-    for _, name in ipairs({ "The Saw", "Thunder God", "Cursed Captain", "Don Swan",
-                           "Darkbeard", "rip_indra True Form", "Soul Reaper", "Order" }) do
-        win:toggle(c, "Auto " .. name, nil, "boss_" .. name)
-    end
-
-    c = win:card(p, "Mobs / Materials")
-    win:toggle(c, "Auto Farm Bone", nil, "mob_Bone")
-    win:toggle(c, "Auto Farm Ectoplasm", nil, "mob_Ectoplasm")
-    win:toggle(c, "Auto Farm Candy", nil, "mob_Candy")
-    win:toggle(c, "Auto Pirates Sea", nil, "mob_Pirates Sea")
-    win:toggle(c, "Auto Factory", nil, "mob_Factory")
-    win:toggle(c, "Auto Rengoku", nil, "mob_Rengoku")
-    win:toggle(c, "Auto Tushita", nil, "mob_Tushita")
-    win:dropdown(c, "Material", "MaterialSelected", D and D.materials[U.sea] or {})
-    win:toggle(c, "Auto Farm Material", "uses the material above", "mob_Material")
-
-    c = win:card(p, "Quests / Unlocks")
-    for _, key in ipairs({ "Ken V2", "Musketeer Hat", "Saber", "Rainbow Haki",
-                           "Soul Guitar", "Second Sea", "Third Sea" }) do
-        win:toggle(c, "Auto " .. key, nil, "chain_" .. key)
-    end
-
-    c = win:card(p, "Fighting Styles")
-    for _, f in ipairs(D and D.fighters or {}) do
-        win:toggle(c, "Auto " .. f[1], "mastery then buy", "fighter_" .. f[1])
-    end
-
-    c = win:card(p, "Fruit / Chest")
-    win:toggle(c, "Teleport To Fruit", "walk to any fruit on the ground", "TeleportToFruit")
-    win:toggle(c, "Auto Store Fruits", nil, "AutoStoreFruits")
-    win:toggle(c, "Auto Chest Tween", nil, "AutoChestTween")
-    win:toggle(c, "Auto Chest Bypass", nil, "AutoChestBypass")
-
-    c = win:card(p, "Server")
-    win:toggle(c, "Auto Elite Hunter", "hops until the elite boss is up", "chain_Elite Hunter")
-    win:toggle(c, "Hop If Don Swan", nil, "AutoDonSwanHop")
-    win:toggle(c, "Hop If Elite Hunter", nil, "AutoEliteHunterHop")
-    win:toggle(c, "Hop If Rengoku", nil, "AutoRengokuHop")
-    win:toggle(c, "Hop If Tushita", nil, "AutoTushitaHop")
-    win:toggle(c, "Hop If Rainbow Haki", nil, "RainbowHakiHop")
-    win:button(c, "Server Hop", "jump to a less full server", function() M.serverHop() end)
-
-    c = win:card(p, "Misc Switches")
-    win:toggle(c, "Attack Distance", "widen hitboxMagnitude", "AttackDistance")
-    win:toggle(c, "Auto Buy Chip", "raid chip", "AutoBuyChip")
-    win:toggle(c, "Auto Farm Raid", nil, "AutoFarmRaid")
-    win:toggle(c, "Auto Buy Haki Color", nil, "AutoBuyHakiColor")
-    win:toggle(c, "Auto Legendary Sword", nil, "AutoLegendarySword")
-    win:toggle(c, "Auto True Triple Katana", nil, "AutoTTK")
-    win:toggle(c, "Auto Cursed Dual Katana", "long chain, needs Tushita + Yama", "AutoCursedDualKatana")
-    win:toggle(c, "Auto Bartilo Quest", nil, "AutoBartiloQuest")
-    win:toggle(c, "Auto Don Swan Hop", nil, "AutoDonSwanHop")
+    -- ITEMS -----------------------------------------------------------------
+    win:tab("Items", function(page)
+        local c = win:card(page, "Fruit / Chest")
+        win:toggle(c, "Teleport To Fruit", "TeleportToFruit")
+        win:toggle(c, "Auto Store Fruits", "AutoStoreFruits")
+        win:toggle(c, "Auto Chest Tween", "AutoChestTween")
+        win:toggle(c, "Auto Chest Bypass", "AutoChestBypass")
+        c = win:card(page, "Raid")
+        win:toggle(c, "Auto Farm Raid", "AutoFarmRaid")
+        win:toggle(c, "Auto Buy Chip", "AutoBuyChip")
+        c = win:card(page, "Misc Buys")
+        win:toggle(c, "Auto Buy Haki Color", "AutoBuyHakiColor")
+        win:toggle(c, "Auto Legendary Sword", "AutoLegendarySword")
+        win:toggle(c, "Auto True Triple Katana", "AutoTTK")
+        win:toggle(c, "Auto Bartilo Quest", "AutoBartiloQuest")
+        win:toggle(c, "Auto Cursed Dual Katana", "AutoCursedDualKatana")
+        win:label(c, "CDK needs Tushita and Yama mastered first", Color3.fromRGB(150, 155, 170))
+    end)
 
     -- TELEPORT --------------------------------------------------------------
-    p = win:tab("Teleport")
-    c = win:card(p, "Islands")
-    local islands = {}
-    do
+    win:tab("Teleport", function(page)
+        local c = win:card(page, "Islands")
+        local islands = {}
         local w = workspace:FindFirstChild("_WorldOrigin")
         local loc = w and w:FindFirstChild("Locations")
         if loc then
             for _, i in ipairs(loc:GetChildren()) do table.insert(islands, i.Name) end
             table.sort(islands)
         end
-    end
-    if #islands == 0 then islands = { "no Locations registry" } end
-    win:dropdown(c, "Island", "island", islands)
-    win:button(c, "Teleport", "jump to the island above", function() M.teleportIsland() end)
-    c = win:card(p, "Sea")
-    win:button(c, "Teleport to Sea 1", nil, function() U.F("TravelMain") end)
-    win:button(c, "Teleport to Sea 2", nil, function() U.F("TravelDressrosa") end)
-    win:button(c, "Teleport to Sea 3", nil, function() U.F("TravelZou") end)
-    c = win:card(p, "Server")
-    win:textbox(c, "Server ID", "serverid", "jobId")
-    win:button(c, "Join Server", "teleport to the jobId above", function()
-        local id = C.get("serverid")
-        if id and #id > 10 then
-            game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, id, U.LP)
-        else
-            U.notify("paste a jobId first")
-        end
+        if #islands == 0 then islands = { "no Locations registry" } end
+        win:dropdown(c, "Island", "island", islands)
+        win:button(c, "Teleport", function() M.teleportIsland() end)
+        c = win:card(page, "Sea")
+        win:button(c, "Sea 1", function() U.F("TravelMain") end)
+        win:button(c, "Sea 2", function() U.F("TravelDressrosa") end)
+        win:button(c, "Sea 3", function() U.F("TravelZou") end)
+        c = win:card(page, "Server")
+        win:textbox(c, "Server ID", "serverid", "jobId")
+        win:button(c, "Join Server", function()
+            local id = C.get("serverid")
+            if id and #id > 10 then
+                game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, id, U.LP)
+            else
+                U.notify("paste a jobId first")
+            end
+        end)
     end)
 
     -- SHOP ------------------------------------------------------------------
-    p = win:tab("Shop")
-    c = win:card(p, "Codes")
-    win:button(c, "Redeem All Codes", "sends the current public code list", function() M.redeemCodes() end)
-    c = win:card(p, "Fighting Styles")
-    for _, s in ipairs({ "Black Leg", "Electro", "Fishman Karate", "Dragon Claw", "Superhuman",
-                         "Death Step", "Sharkman Karate", "Electric Claw", "Dragon Talon",
-                         "Godhuman", "Sanguine Art" }) do
-        win:button(c, "Buy " .. s, nil, function() U.F(s, true) U.F(s) U.notify("buying " .. s) end)
-    end
-    c = win:card(p, "Swords")
-    for _, s in ipairs({ "Katana", "Cutlass", "Dual Katana", "Iron Mace", "Triple Katana",
-                         "Pipe", "Dual-Headed Blade", "Soul Cane", "Bisento" }) do
-        win:button(c, "Buy " .. s, nil, function()
-            U.F("Buy" .. s:gsub("[%s%-]", "")) U.notify("buying " .. s)
-        end)
-    end
-    c = win:card(p, "Guns")
-    for _, s in ipairs({ "Musket", "Slingshot", "Flintlock", "Refined Slingshot",
-                         "Refined Flintlock", "Cannon", "Kabucha" }) do
-        win:button(c, "Buy " .. s, nil, function()
-            U.F("Buy" .. s:gsub("[%s%-]", "")) U.notify("buying " .. s)
-        end)
-    end
-    c = win:card(p, "Race / Misc")
-    win:button(c, "Ghoul Race", nil, function() U.F("GhoulTrainer", "Buy") end)
-    win:button(c, "Cyborg Race", nil, function() U.F("CyborgTrainer", "Buy") end)
-    win:button(c, "Devil Fruit Shop", nil, function() U.F("Cousin", "Buy") end)
+    win:tab("Shop", function(page)
+        local c = win:card(page, "Codes")
+        win:button(c, "Redeem All Codes", function() M.redeemCodes() end)
+        c = win:card(page, "Fighting Styles")
+        for _, s in ipairs({ "Black Leg", "Electro", "Fishman Karate", "Dragon Claw", "Superhuman",
+                             "Death Step", "Sharkman Karate", "Electric Claw", "Dragon Talon",
+                             "Godhuman", "Sanguine Art" }) do
+            win:button(c, "Buy " .. s, function() U.F(s, true) U.F(s) U.notify("buying " .. s) end)
+        end
+        c = win:card(page, "Swords")
+        for _, s in ipairs({ "Katana", "Cutlass", "Dual Katana", "Iron Mace", "Triple Katana",
+                             "Pipe", "Dual-Headed Blade", "Soul Cane", "Bisento" }) do
+            win:button(c, "Buy " .. s, function()
+                U.F("Buy" .. s:gsub("[%s%-]", "")) U.notify("buying " .. s)
+            end)
+        end
+        c = win:card(page, "Guns")
+        for _, s in ipairs({ "Musket", "Slingshot", "Flintlock", "Refined Slingshot",
+                             "Refined Flintlock", "Cannon", "Kabucha" }) do
+            win:button(c, "Buy " .. s, function()
+                U.F("Buy" .. s:gsub("[%s%-]", "")) U.notify("buying " .. s)
+            end)
+        end
+        c = win:card(page, "Race")
+        win:button(c, "Ghoul Race", function() U.F("GhoulTrainer", "Buy") end)
+        win:button(c, "Cyborg Race", function() U.F("CyborgTrainer", "Buy") end)
+        win:button(c, "Random Fruit", function() U.F("Cousin", "Buy") end)
+    end)
 
     -- VISUAL ----------------------------------------------------------------
-    p = win:tab("Visual")
-    c = win:card(p, "ESP")
-    win:toggle(c, "ESP Fruits", nil, "EspFruits")
-    win:toggle(c, "ESP Chests", nil, "EspChests")
-    win:toggle(c, "ESP Flowers", nil, "EspFlowers")
-    win:toggle(c, "ESP Islands", nil, "EspIslands")
-    win:toggle(c, "ESP Players", nil, "EspPlayer")
-    c = win:card(p, "Performance")
-    win:toggle(c, "Low-End Mode", "kills particles + shadows (mobile fps)", "lowend")
-    win:toggle(c, "Anti-AFK", nil, "AntiAFK")
-    win:toggle(c, "Walk On Water", "platform under your feet", "WalkOnWater")
-    win:toggle(c, "Panic Mode", "clears camera shake", "PanicMode")
+    win:tab("Visual", function(page)
+        local c = win:card(page, "ESP")
+        win:toggle(c, "ESP Fruits", "EspFruits")
+        win:toggle(c, "ESP Chests", "EspChests")
+        win:toggle(c, "ESP Flowers", "EspFlowers")
+        win:toggle(c, "ESP Islands", "EspIslands")
+        win:toggle(c, "ESP Players", "EspPlayer")
+        c = win:card(page, "Performance")
+        win:toggle(c, "Low-End Mode", "lowend")
+        win:toggle(c, "Anti-AFK", "AntiAFK")
+        win:toggle(c, "Walk On Water", "WalkOnWater")
+        win:toggle(c, "Panic Mode", "PanicMode")
+    end)
 
     -- MISC ------------------------------------------------------------------
-    p = win:tab("Misc")
-    c = win:card(p, "Webhook")
-    win:label(c, "paste a Discord webhook URL here, then Log tab > Send")
-    win:textbox(c, "Webhook", "webhook", "https://discord.com/api/webhooks/...")
-    c = win:card(p, "Credits")
-    win:label(c, "Raf's Personal Script - use an alt account")
-    return M
+    win:tab("Misc", function(page)
+        local c = win:card(page, "Stats")
+        win:toggle(c, "Auto Stats", "AutoStats")
+        win:button(c, "Check Boost", function()
+            U.log("i", "boost: " .. tostring(U.F("CheckBoost")))
+            U.notify("boost -> Log")
+        end)
+        c = win:card(page, "Webhook")
+        win:textbox(c, "Webhook", "webhook", "https://discord.com/api/webhooks/...")
+        c = win:card(page, "About")
+        win:label(c, "Raf's Personal Script")
+        win:label(c, "keyless, open source, no obfuscation")
+        win:label(c, "use an alt account")
+    end)
+
+    -- LOG -------------------------------------------------------------------
+    win:tab("Log", function(page)
+        local c = win:card(page, "Log")
+        local out = win:label(c, "")
+        win:button(c, "Copy", function()
+            pcall(function() setclipboard(U.logText()) end)
+            U.notify("copied")
+        end)
+        win:button(c, "Clear", function()
+            U.logs = {}
+            out.Text = ""
+        end)
+        win:button(c, "Send to Webhook", function()
+            local url = C.get("webhook")
+            if not url or url == "" then return U.notify("no webhook url") end
+            pcall(function()
+                request({
+                    Url = url, Method = "POST",
+                    Headers = { ["Content-Type"] = "application/json" },
+                    Body = game:GetService("HttpService"):JSONEncode({ content = "```" .. U.logText():sub(1, 1900) .. "```" }),
+                })
+            end)
+            U.notify("sent")
+        end)
+        task.spawn(function()
+            while win.gui.Parent do
+                out.Text = U.logText()
+                task.wait(1)
+            end
+        end)
+    end)
 end
 
 -- actions -------------------------------------------------------------------
@@ -2189,7 +2178,7 @@ end
 function M.redeemCodes()
     if not U.Redeem then return U.notify("no Redeem remote") end
     local n = 0
-    for _, code in ipairs(D and D.codes or {}) do
+    for _, code in ipairs(D.codes) do
         U.remote(U.Redeem, true, code)
         n = n + 1
     end
@@ -2201,12 +2190,7 @@ function M.teleportIsland()
     local loc = w and w:FindFirstChild("Locations")
     if not loc then return U.notify("no Locations registry") end
     local island = loc:FindFirstChild(C.get("island") or "")
-    if not island then
-        local names = {}
-        for _, i in ipairs(loc:GetChildren()) do table.insert(names, i.Name) end
-        U.log("i", "islands: " .. table.concat(names, ", "))
-        return U.notify("pick an island in the dropdown")
-    end
+    if not island then return U.notify("pick an island") end
     local part = island.PrimaryPart or island:FindFirstChildWhichIsA("BasePart")
     if part then U.tp(part.CFrame * CFrame.new(0, 30, 0)) end
 end
@@ -2214,80 +2198,46 @@ end
 return M
 ]==]
 FILES["src/home.lua"] = [==[
---[[ home.lua - Home tab: status, module load report, Log tab, Credits. ]]
+--[[ home.lua - Home tab: status + debug panel. Built first (it is the landing page). ]]
 
 local M = {}
-local U, C, UI, win
 
-function M.init(_U, _C, _UI, _w)
-    U, C, UI, win = _U, _C, _UI, _w
-
-    local home = win:tab("Home")
-    local st = win:card(home, "Status")
-    M.lvl = win:label(st, "loading...")
-    local ok, bad = 0, 0
-    for _, line in ipairs(U.modules or {}) do
-        if line:find("^%[ok%]") then ok = ok + 1 else bad = bad + 1 end
-    end
-    win:label(st, "modules: " .. ok .. " ok, " .. bad .. " failed" .. (bad > 0 and "  -> Log tab" or ""))
-    win:debug(home, U, C)
-
-    local cf = win:card(home, "Quick")
-    win:toggle(cf, "Auto Farm Level", "the main switch", "farm")
-    win:toggle(cf, "Low-End Mode", "kills particles + shadows (mobile fps)", "lowend")
-    win:toggle(cf, "Anti-AFK", nil, "antiafk")
-    win:button(cf, "Dump Environment", "executor capabilities + game state", function()
-        U.log("i", "executor " .. tostring(identifyexecutor()))
-        U.log("i", "debug.getupvalues " .. type(debug.getupvalues) .. "  require " .. type(require) .. "  request " .. type(request))
-        U.log("i", "setclipboard " .. type(setclipboard) .. "  sethiddenproperty " .. type(sethiddenproperty))
-        U.log("i", "CombatFramework " .. tostring(U.LP.PlayerScripts:FindFirstChild("CombatFramework") ~= nil))
-        U.log("i", "mobs " .. #U.mobs() .. "  level " .. U.level() .. "  sea " .. tostring(U.sea) .. "  place " .. game.PlaceId)
-        U.notify("dumped to Log tab")
-    end)
-    win:button(cf, "Refresh", "re-read islands and reload", function() U.notify("ok") end)
-
-    -- Log tab --------------------------------------------------------------
-    local logp = win:tab("Log")
-    local lc = win:card(logp, "Log")
-    M.loglabel = win:label(lc, "")
-    win:button(lc, "Copy to Clipboard", nil, function()
-        pcall(function() setclipboard(U.logText and U.logText() or table.concat(U.logs, "\n")) end)
-        U.notify("log copied")
-    end)
-    win:button(lc, "Clear", nil, function()
-        U.logs = {}
-        M.loglabel.Text = ""
-    end)
-    win:button(lc, "Send to Webhook", "URL set in Misc", function()
-        local url = C.get("webhook")
-        if not url or url == "" then return U.notify("no webhook url") end
-        pcall(function()
-            local body = (U.logText and U.logText() or table.concat(U.logs, "\n")):sub(1, 1900)
-            request({
-                Url = url, Method = "POST",
-                Headers = { ["Content-Type"] = "application/json" },
-                Body = game:GetService("HttpService"):JSONEncode({ content = "```" .. body .. "```" }),
-            })
-        end)
-        U.notify("sent")
-    end)
-
-    task.spawn(function()
-        while win.gui.Parent do
-            M.lvl.Text = string.format("Lv %d   sea %s   mobs %d   %s",
-                U.level(), tostring(U.sea), #U.mobs(), tostring(C.get("farm") and "FARMING" or "idle"))
-            M.loglabel.Text = (U.logText and U.logText() or table.concat(U.logs, "\n"))
-            task.wait(1)
+function M.init(U, C, UI, win)
+    local page = win:tab("Home", function(p)
+        local c = win:card(p, "Status")
+        M.lvl = win:label(c, "")
+        local ok, bad = 0, 0
+        for _, line in ipairs(U.modules or {}) do
+            if line:find("^%[ok%]") then ok = ok + 1 else bad = bad + 1 end
         end
-    end)
+        win:label(c, "modules " .. ok .. " ok" .. (bad > 0 and (", " .. bad .. " failed -> Log") or ""))
+        win:debug(p, U, C)
 
-    -- Credits --------------------------------------------------------------
-    local cr = win:tab("Credits")
-    local cc = win:card(cr, "Credits")
-    win:label(cc, "Raf's Personal Script")
-    win:label(cc, "keyless, open source, no obfuscation")
-    win:label(cc, "feature set ported from the public Redz Hub V2 source")
-    win:label(cc, "this is a cheat - use an alt account")
+        c = win:card(p, "Quick")
+        win:toggle(c, "Auto Farm Level", "AutoFarm_Level")
+        win:toggle(c, "Low-End Mode", "lowend")
+        win:toggle(c, "Anti-AFK", "AntiAFK")
+
+        c = win:card(p, "Diagnostics")
+        win:button(c, "Dump Environment", function()
+            U.log("i", "executor " .. tostring(identifyexecutor()))
+            U.log("i", "getupvalues " .. type(debug.getupvalues) .. " require " .. type(require) .. " request " .. type(request))
+            U.log("i", "setclipboard " .. type(setclipboard) .. " sethiddenproperty " .. type(sethiddenproperty))
+            U.log("i", "CombatFramework " .. tostring(U.LP.PlayerScripts:FindFirstChild("CombatFramework") ~= nil))
+            U.log("i", "mobs " .. #U.mobs() .. " level " .. U.level() .. " sea " .. tostring(U.sea) .. " place " .. game.PlaceId)
+            U.notify("dumped to Log")
+        end)
+
+        task.spawn(function()
+            while win.gui.Parent do
+                if M.lvl then
+                    M.lvl.Text = string.format("Lv %d   sea %s   mobs %d   %s",
+                        U.level(), tostring(U.sea), #U.mobs(), C.get("AutoFarm_Level") and "FARMING" or "idle")
+                end
+                task.wait(1)
+            end
+        end)
+    end)
     return M
 end
 
@@ -2420,7 +2370,7 @@ end
 local win
 local okU, errU = pcall(function() win = UI.new(U, C) end)
 assert(okU, "UI.new: " .. tostring(errU))
-print("[ok] UI.new built, first tab: " .. tostring(win.current))
+print("[ok] UI.new built, tabs declared: " .. tostring(#win.order))
 
 for _, pair in ipairs({ { "src/farm.lua", "farm" }, { "src/quests.lua", "quests" }, { "src/extras.lua", "extras" } }) do
     local m = loaded[pair[1]]
@@ -2431,15 +2381,27 @@ for _, pair in ipairs({ { "src/farm.lua", "farm" }, { "src/quests.lua", "quests"
         if not ok2 then print("[x] tick " .. pair[2] .. " #" .. i .. ": " .. tostring(err2)) failCount = failCount + 1 break end
     end
 end
-for _, pair in ipairs({ { "src/pages.lua", "pages" }, { "src/home.lua", "home" } }) do
+for _, pair in ipairs({ { "src/home.lua", "home" }, { "src/pages.lua", "pages" } }) do
     local m = loaded[pair[1]]
     local ok, err = pcall(function() m.init(U, C, UI, win, { D = D }) end)
     if ok then print("[ok] init " .. pair[2]) else print("[x] init " .. pair[2] .. ": " .. tostring(err)) failCount = failCount + 1 end
 end
-print("[ok] tabs: " .. tostring(#win.rows) .. " rows registered")
+-- lazy build: only Home should exist before any select
+print("[ok] tabs declared: " .. table.concat(win.order, ", "))
+local builtBefore = 0
+for _ in pairs(win.built) do builtBefore = builtBefore + 1 end
+-- select every tab; each must build without error and register rows
+local rowsBefore = 0
+for _, name in ipairs(win.order) do
+    local ok, err = pcall(function() win:select(name) end)
+    if not ok then print("[x] select " .. name .. ": " .. tostring(err)) failCount = failCount + 1 end
+end
+local builtAfter = 0
+for _ in pairs(win.built) do builtAfter = builtAfter + 1 end
+print(string.format("[ok] lazy build: %d tab(s) built before selecting, %d after", builtBefore, builtAfter))
+assert(builtAfter >= #win.order - 1, "some tab never built")
+print("[ok] all tabs built and selected")
 
-C.set("farm", true) assert(C.get("farm") == true)
-C.toggle("farm") assert(C.get("farm") == false)
 print("[ok] config round-trip")
 
 print(string.format("HARNESS: %d ok, %d failed", okCount, failCount))

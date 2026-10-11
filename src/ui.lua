@@ -1,5 +1,11 @@
---[[ ui.lua - raw Instance.new GUI. No UI library on purpose: a library adds
-     hundreds of KB and lags mobile executors. ~400 lines, instant load. ]]
+--[[ ui.lua - raw Instance.new GUI, no library.
+
+     Two things make this load fast:
+       1. tabs are built LAZILY - only Home exists at load, the other pages are
+          constructed the first time they are opened. 150 rows become ~12.
+       2. one flat frame per row, no nested cards/strokes, so the UI tree stays small.
+
+     Minimalist: single accent colour, no gradients, no icons, compact rows. ]]
 
 local UI = {}
 UI.__index = UI
@@ -7,119 +13,95 @@ UI.__index = UI
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
-local ACCENT = Color3.fromRGB(122, 140, 255)
-local CYAN = Color3.fromRGB(120, 220, 220)
-local BG = Color3.fromRGB(22, 23, 28)
-local CARD = Color3.fromRGB(32, 34, 41)
-local TRACK = Color3.fromRGB(52, 55, 66)
-local TXT = Color3.fromRGB(232, 234, 242)
-local DIM = Color3.fromRGB(150, 155, 170)
+local ACCENT = Color3.fromRGB(124, 142, 255)
+local BG     = Color3.fromRGB(19, 20, 24)
+local CARD   = Color3.fromRGB(28, 30, 36)
+local TRACK  = Color3.fromRGB(46, 49, 58)
+local TXT    = Color3.fromRGB(232, 234, 242)
+local DIM    = Color3.fromRGB(138, 143, 158)
 
 local function mk(class, props, parent)
     local i = Instance.new(class)
-    for k, v in pairs(props or {}) do i[k] = v end
+    for k, v in pairs(props) do i[k] = v end
     i.Parent = parent
     return i
 end
 
-local function round(i, r)
-    mk("UICorner", { CornerRadius = UDim.new(0, r or 8) }, i)
+local function corner(i, r)
+    mk("UICorner", { CornerRadius = UDim.new(0, r or 6) }, i)
     return i
 end
 
-local function stroke(i, c, t)
-    mk("UIStroke", { Color = c or TRACK, Thickness = t or 1, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, i)
-    return i
-end
-
--- one scheduler-free tween helper
 local function to(inst, t, props)
-    TweenService:Create(inst, TweenInfo.new(t or 0.15, Enum.EasingStyle.Quad), props):Play()
+    TweenService:Create(inst, TweenInfo.new(t, Enum.EasingStyle.Quad), props):Play()
 end
 
 function UI.new(U, C)
-    local self = setmetatable({ U = U, C = C, tabs = {}, pages = {}, rows = {} }, UI)
+    local self = setmetatable({ U = U, C = C, pages = {}, order = {}, built = {} }, UI)
 
-    -- double-load guard
     local pg = U.LP:FindFirstChild("PlayerGui")
-    local old = pg and pg:FindFirstChild("BFHub")
+    local old = pg and pg:FindFirstChild("RPS")
     if old then old:Destroy() end
 
     local gui = mk("ScreenGui", {
-        Name = "BFHub", ResetOnSpawn = false, DisplayOrder = 999, IgnoreGuiInset = true,
+        Name = "RPS", ResetOnSpawn = false, DisplayOrder = 999, IgnoreGuiInset = true,
     }, pg or game:GetService("CoreGui"))
     self.gui = gui
 
     local main = mk("Frame", {
-        Name = "Main", Size = UDim2.fromOffset(470, 340), Position = UDim2.new(0.5, -235, 0.5, -170),
+        Size = UDim2.fromOffset(430, 300), Position = UDim2.new(0.5, -215, 0.5, -150),
         BackgroundColor3 = BG, BorderSizePixel = 0, Active = true, Draggable = true,
     }, gui)
-    round(main, 12) stroke(main, TRACK)
+    corner(main, 10)
     self.main = main
 
-    -- header ---------------------------------------------------------------
-    local header = mk("Frame", { Size = UDim2.new(1, 0, 0, 40), BackgroundColor3 = CARD, BorderSizePixel = 0 }, main)
-    round(header, 12)
-    mk("Frame", { Size = UDim2.new(1, 0, 0, 12), Position = UDim2.new(0, 0, 1, -12), BackgroundColor3 = CARD, BorderSizePixel = 0 }, header)
-
+    -- header: title + one close button. no subtitle, no search box.
+    local header = mk("Frame", { Size = UDim2.new(1, 0, 0, 32), BackgroundColor3 = CARD, BorderSizePixel = 0 }, main)
+    corner(header, 10)
+    mk("Frame", { Size = UDim2.new(1, 0, 0, 10), Position = UDim2.new(0, 0, 1, -10), BackgroundColor3 = CARD, BorderSizePixel = 0 }, header)
+    mk("Frame", { Size = UDim2.fromOffset(3, 14), Position = UDim2.fromOffset(12, 9), BackgroundColor3 = ACCENT, BorderSizePixel = 0 }, header)
     mk("TextLabel", {
-        Text = "Raf's Personal Script", Font = Enum.Font.GothamBold, TextSize = 15, TextColor3 = TXT,
-        BackgroundTransparency = 1, Position = UDim2.fromOffset(14, 4), Size = UDim2.new(1, -120, 0, 18),
+        Text = "Raf's Personal Script", Font = Enum.Font.GothamMedium, TextSize = 13, TextColor3 = TXT,
+        BackgroundTransparency = 1, Position = UDim2.fromOffset(22, 6), Size = UDim2.new(1, -80, 0, 20),
         TextXAlignment = Enum.TextXAlignment.Left,
     }, header)
-    mk("TextLabel", {
-        Text = "BFHub - keyless", Font = Enum.Font.Gotham, TextSize = 11, TextColor3 = CYAN,
-        BackgroundTransparency = 1, Position = UDim2.fromOffset(14, 21), Size = UDim2.new(1, -120, 0, 14),
-        TextXAlignment = Enum.TextXAlignment.Left,
-    }, header)
-
     local min = mk("TextButton", {
-        Text = "-", Font = Enum.Font.GothamBold, TextSize = 18, TextColor3 = DIM, BackgroundTransparency = 1,
-        Size = UDim2.fromOffset(28, 28), Position = UDim2.new(1, -64, 0, 6),
+        Text = "-", Font = Enum.Font.GothamBold, TextSize = 16, TextColor3 = DIM, BackgroundTransparency = 1,
+        Size = UDim2.fromOffset(26, 26), Position = UDim2.new(1, -56, 0, 3),
     }, header)
     min.MouseButton1Click:Connect(function() self:hide() end)
-
     local kill = mk("TextButton", {
-        Text = "X", Font = Enum.Font.GothamBold, TextSize = 14, TextColor3 = DIM, BackgroundTransparency = 1,
-        Size = UDim2.fromOffset(28, 28), Position = UDim2.new(1, -32, 0, 6),
+        Text = "x", Font = Enum.Font.GothamBold, TextSize = 13, TextColor3 = DIM, BackgroundTransparency = 1,
+        Size = UDim2.fromOffset(26, 26), Position = UDim2.new(1, -28, 0, 3),
     }, header)
     kill.MouseButton1Click:Connect(function() self:destroy() end)
 
-    -- feature search -------------------------------------------------------
-    local search = mk("TextBox", {
-        PlaceholderText = "search...", Font = Enum.Font.Gotham, TextSize = 11, TextColor3 = TXT,
-        PlaceholderColor3 = DIM, BackgroundColor3 = BG, BorderSizePixel = 0, ClearTextOnFocus = false,
-        Size = UDim2.fromOffset(96, 22), Position = UDim2.new(1, -170, 0, 9),
-    }, header)
-    round(search, 6) stroke(search)
-    search:GetPropertyChangedSignal("Text"):Connect(function() self:filter(search.Text) end)
-
-    -- tab rail: a ScrollingFrame, NOT a Frame - a Frame silently clips tab 10+
+    -- tab rail: 100px, plain buttons, no icons
     local rail = mk("ScrollingFrame", {
-        Size = UDim2.new(0, 124, 1, -50), Position = UDim2.fromOffset(10, 46), BackgroundTransparency = 1,
-        BorderSizePixel = 0, ScrollBarThickness = 4, ScrollingDirection = Enum.ScrollingDirection.Y,
+        Size = UDim2.new(0, 100, 1, -42), Position = UDim2.fromOffset(8, 40), BackgroundTransparency = 1,
+        BorderSizePixel = 0, ScrollBarThickness = 3, ScrollingDirection = Enum.ScrollingDirection.Y,
         CanvasSize = UDim2.new(0, 0, 0, 0), AutomaticCanvasSize = Enum.AutomaticSize.Y,
         ScrollBarImageColor3 = TRACK,
     }, main)
-    mk("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }, rail)
+    mk("UIListLayout", { Padding = UDim.new(0, 3) }, rail)
     self.rail = rail
 
     local body = mk("ScrollingFrame", {
-        Size = UDim2.new(1, -144, 1, -50), Position = UDim2.new(0, 134, 0, 46), BackgroundTransparency = 1,
-        BorderSizePixel = 0, ScrollBarThickness = 6, ScrollingDirection = Enum.ScrollingDirection.Y,
+        Size = UDim2.new(1, -116, 1, -42), Position = UDim2.new(0, 108, 0, 40), BackgroundTransparency = 1,
+        BorderSizePixel = 0, ScrollBarThickness = 5, ScrollingDirection = Enum.ScrollingDirection.Y,
         CanvasSize = UDim2.new(0, 0, 0, 0), AutomaticCanvasSize = Enum.AutomaticSize.Y,
         ScrollBarImageColor3 = ACCENT, ClipsDescendants = true,
     }, main)
-    mk("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, body)
+    mk("UIListLayout", { Padding = UDim.new(0, 6) }, body)
     self.body = body
 
-    -- floating restore button ---------------------------------------------
+    -- floating restore button
     local fab = mk("TextButton", {
-        Name = "FAB", Text = "B", Font = Enum.Font.GothamBold, TextSize = 18, TextColor3 = TXT,
-        BackgroundColor3 = ACCENT, Size = UDim2.fromOffset(52, 52), Position = UDim2.new(0, 16, 0.5, -26),
-        Visible = false, AutoButtonColor = true,
+        Name = "FAB", Text = "R", Font = Enum.Font.GothamBold, TextSize = 15, TextColor3 = TXT,
+        BackgroundColor3 = ACCENT, Size = UDim2.fromOffset(46, 46), Position = UDim2.new(0, 14, 0.5, -23),
+        Visible = false,
     }, gui)
-    round(fab, 26)
+    corner(fab, 23)
     fab.Draggable = true
     fab.MouseButton1Click:Connect(function() self:show() end)
     self.fab = fab
@@ -131,7 +113,6 @@ function UI.new(U, C)
     return self
 end
 
--- window state -------------------------------------------------------------
 function UI:show() self.main.Visible = true self.fab.Visible = false end
 function UI:hide() self.main.Visible = false self.fab.Visible = true end
 function UI:toggle() self.main.Visible = not self.main.Visible self.fab.Visible = not self.main.Visible end
@@ -141,41 +122,52 @@ function UI:destroy()
 end
 
 -- tabs ---------------------------------------------------------------------
-function UI:tab(name)
+-- builder runs on FIRST open only: that is what keeps the load instant.
+function UI:tab(name, builder)
     if self.pages[name] then return self.pages[name] end
+
     local btn = mk("TextButton", {
-        Text = name, Font = Enum.Font.GothamMedium, TextSize = 12, TextColor3 = DIM,
-        BackgroundColor3 = CARD, BorderSizePixel = 0, Size = UDim2.new(1, -8, 0, 32),
+        Text = name, Font = Enum.Font.Gotham, TextSize = 11, TextColor3 = DIM,
+        BackgroundColor3 = CARD, BorderSizePixel = 0, Size = UDim2.new(1, -6, 0, 26),
         AutoButtonColor = false,
     }, self.rail)
-    round(btn, 8)
+    corner(btn, 6)
     local bar = mk("Frame", {
-        Size = UDim2.new(0, 3, 0.6, 0), Position = UDim2.new(0, 0, 0.2, 0),
+        Size = UDim2.new(0, 2, 0.5, 0), Position = UDim2.new(0, 0, 0.25, 0),
         BackgroundColor3 = ACCENT, BorderSizePixel = 0, Visible = false,
     }, btn)
-    round(bar, 2)
+    corner(bar, 1)
 
     local page = mk("Frame", {
-        Size = UDim2.new(1, -6, 0, 0), BackgroundTransparency = 1, BorderSizePixel = 0,
+        Size = UDim2.new(1, -4, 0, 0), BackgroundTransparency = 1, BorderSizePixel = 0,
         Visible = false, AutomaticSize = Enum.AutomaticSize.Y,
     }, self.body)
-    mk("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, page)
+    mk("UIListLayout", { Padding = UDim.new(0, 6) }, page)
 
-    local entry = { btn = btn, bar = bar, page = page }
+    local entry = { btn = btn, bar = bar, page = page, builder = builder }
     self.pages[name] = entry
+    table.insert(self.order, name)
     btn.MouseButton1Click:Connect(function() self:select(name) end)
     if not self.current then self:select(name) end
     return page
 end
 
 function UI:select(name)
+    local e = self.pages[name]
+    if not e then return end
+    -- lazy build, once
+    if e.builder and not self.built[name] then
+        self.built[name] = true
+        local ok, err = pcall(e.builder, e.page)
+        if not ok then self.U.log("x", "tab " .. name .. ": " .. tostring(err)) end
+    end
     self.current = name
-    for n, e in pairs(self.pages) do
+    for n, p in pairs(self.pages) do
         local on = n == name
-        e.page.Visible = on
-        e.bar.Visible = on
-        e.btn.TextColor3 = on and TXT or DIM
-        e.btn.BackgroundColor3 = on and TRACK or CARD
+        p.page.Visible = on
+        p.bar.Visible = on
+        p.btn.TextColor3 = on and TXT or DIM
+        p.btn.BackgroundColor3 = on and TRACK or CARD
     end
     self.body.CanvasPosition = Vector2.zero
 end
@@ -183,149 +175,115 @@ end
 -- widgets ------------------------------------------------------------------
 function UI:card(page, title)
     local card = mk("Frame", {
-        Size = UDim2.new(1, -6, 0, 0), BackgroundColor3 = CARD, BorderSizePixel = 0,
+        Size = UDim2.new(1, -4, 0, 0), BackgroundColor3 = CARD, BorderSizePixel = 0,
         AutomaticSize = Enum.AutomaticSize.Y,
     }, page)
-    round(card, 10) stroke(card)
-    mk("UIPadding", { PaddingTop = UDim.new(0, 8), PaddingBottom = UDim.new(0, 8), PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) }, card)
-    mk("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }, card)
+    corner(card, 8)
+    mk("UIPadding", {
+        PaddingTop = UDim.new(0, 6), PaddingBottom = UDim.new(0, 6),
+        PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8),
+    }, card)
+    mk("UIListLayout", { Padding = UDim.new(0, 4) }, card)
     if title then
         mk("TextLabel", {
-            Text = string.upper(title), Font = Enum.Font.GothamBold, TextSize = 11, TextColor3 = CYAN,
-            BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 14), TextXAlignment = Enum.TextXAlignment.Left,
+            Text = string.upper(title), Font = Enum.Font.GothamBold, TextSize = 10, TextColor3 = ACCENT,
+            BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 12), TextXAlignment = Enum.TextXAlignment.Left,
         }, card)
     end
     return card
 end
 
-local function row(parent, title, caption)
-    local f = mk("Frame", { Size = UDim2.new(1, 0, 0, caption and 34 or 22), BackgroundTransparency = 1 }, parent)
-    mk("TextLabel", {
-        Text = title, Font = Enum.Font.GothamMedium, TextSize = 12, TextColor3 = TXT,
-        BackgroundTransparency = 1, Size = UDim2.new(1, -70, 0, 16), TextXAlignment = Enum.TextXAlignment.Left,
+local function rowFrame(parent, h)
+    return mk("Frame", { Size = UDim2.new(1, 0, 0, h or 18), BackgroundTransparency = 1 }, parent)
+end
+
+local function rowText(f, title)
+    return mk("TextLabel", {
+        Text = title, Font = Enum.Font.Gotham, TextSize = 11, TextColor3 = TXT,
+        BackgroundTransparency = 1, Size = UDim2.new(1, -54, 1, 0), TextXAlignment = Enum.TextXAlignment.Left,
         TextTruncate = Enum.TextTruncate.AtEnd,
     }, f)
-    if caption then
-        mk("TextLabel", {
-            Text = caption, Font = Enum.Font.Gotham, TextSize = 10, TextColor3 = DIM,
-            BackgroundTransparency = 1, Position = UDim2.fromOffset(0, 16), Size = UDim2.new(1, -70, 0, 14),
-            TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
-        }, f)
-    end
-    return f
 end
 
-function UI:row(parent, title, caption)
-    local f = row(parent, title, caption)
-    table.insert(self.rows, { frame = f, title = string.lower(title) })
-    return f
-end
-
-function UI:toggle(parent, title, caption, key)
-    local f = self:row(parent, title, caption)
+function UI:toggle(parent, title, key)
+    local f = rowFrame(parent, 18)
+    rowText(f, title)
     local track = mk("Frame", {
-        Size = UDim2.fromOffset(40, 20), Position = UDim2.new(1, -42, 0, 1),
+        Size = UDim2.fromOffset(34, 18), Position = UDim2.new(1, -36, 0, 0),
         BackgroundColor3 = self.C.get(key) and ACCENT or TRACK, BorderSizePixel = 0,
     }, f)
-    round(track, 10)
+    corner(track, 9)
     local knob = mk("Frame", {
-        Size = UDim2.fromOffset(16, 16), Position = self.C.get(key) and UDim2.fromOffset(22, 2) or UDim2.fromOffset(2, 2),
+        Size = UDim2.fromOffset(14, 14),
+        Position = self.C.get(key) and UDim2.fromOffset(18, 2) or UDim2.fromOffset(2, 2),
         BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0,
     }, track)
-    round(knob, 8)
+    corner(knob, 7)
     local btn = mk("TextButton", { Text = "", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1) }, f)
     btn.MouseButton1Click:Connect(function()
         local on = self.C.toggle(key)
-        to(track, 0.15, { BackgroundColor3 = on and ACCENT or TRACK })
-        to(knob, 0.15, { Position = on and UDim2.fromOffset(22, 2) or UDim2.fromOffset(2, 2) })
+        to(track, 0.12, { BackgroundColor3 = on and ACCENT or TRACK })
+        to(knob, 0.12, { Position = on and UDim2.fromOffset(18, 2) or UDim2.fromOffset(2, 2) })
     end)
     return f
 end
 
 function UI:slider(parent, title, key, min, max, step)
     step = step or 1
-    local f = self:row(parent, title .. ": " .. tostring(self.C.get(key)))
+    local f = rowFrame(parent, 26)
+    local label = rowText(f, title)
     local bar = mk("Frame", {
-        Size = UDim2.new(1, -10, 0, 8), Position = UDim2.new(0, 0, 0, 14),
+        Size = UDim2.new(1, -4, 0, 4), Position = UDim2.new(0, 0, 0, 18),
         BackgroundColor3 = TRACK, BorderSizePixel = 0,
     }, f)
-    round(bar, 4)
+    corner(bar, 2)
     local fill = mk("Frame", { Size = UDim2.new(0, 0, 1, 0), BackgroundColor3 = ACCENT, BorderSizePixel = 0 }, bar)
-    round(fill, 4)
-    local label = f:FindFirstChildOfClass("TextLabel")
+    corner(fill, 2)
     local function apply(x)
-        local a = math.clamp((x - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+        local a = math.clamp((x - bar.AbsolutePosition.X) / math.max(bar.AbsoluteSize.X, 1), 0, 1)
         local v = math.floor((min + (max - min) * a) / step + 0.5) * step
         self.C.set(key, v)
         fill.Size = UDim2.new(a, 0, 1, 0)
         label.Text = title .. ": " .. tostring(v)
     end
+    local v0 = self.C.get(key) or min
+    label.Text = title .. ": " .. tostring(v0)
+    fill.Size = UDim2.new((v0 - min) / math.max(max - min, 1), 0, 1, 0)
     local dragging = false
     local hit = mk("TextButton", { Text = "", BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0) }, bar)
     hit.MouseButton1Down:Connect(function() dragging = true apply(UIS:GetMouseLocation().X) end)
     hit.MouseButton1Up:Connect(function() dragging = false end)
-    hit.TouchLongPress:Connect(function() dragging = true end)
     UIS.InputChanged:Connect(function(i)
-        local t = i.UserInputType
-        if dragging and (t == Enum.UserInputType.MouseMovement or t == Enum.UserInputType.Touch) then
-            apply(i.Position.X)
-        end
+        if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then apply(i.Position.X) end
     end)
-    -- initial fill
-    local v0 = self.C.get(key)
-    fill.Size = UDim2.new((v0 - min) / (max - min), 0, 1, 0)
     return f
 end
 
-function UI:button(parent, title, caption, fn)
-    local f = self:row(parent, title, caption)
-    local btn = mk("TextButton", { Text = "", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1) }, f)
-    btn.MouseButton1Click:Connect(function() self.U.safe(title, fn) end)
-    local go = mk("TextLabel", {
-        Text = ">", Font = Enum.Font.GothamBold, TextSize = 13, TextColor3 = ACCENT,
-        BackgroundTransparency = 1, Size = UDim2.fromOffset(20, 20), Position = UDim2.new(1, -22, 0, 1),
-    }, f)
-    return f, go
-end
-
-function UI:label(parent, text, color)
-    return mk("TextLabel", {
-        Text = text, Font = Enum.Font.Gotham, TextSize = 11, TextColor3 = color or DIM,
-        BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
-        TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left,
-    }, parent)
-end
-
--- dropdown: an inline popup list. A cycle button would be cheaper but a 15-item
--- boss list is unusable that way on a phone.
 function UI:dropdown(parent, title, key, values)
-    local f = self:row(parent, title .. ": " .. tostring(self.C.get(key)))
-    local label = f:FindFirstChildOfClass("TextLabel")
+    local f = rowFrame(parent, 18)
+    local label = rowText(f, title .. ": " .. tostring(self.C.get(key)))
     local btn = mk("TextButton", { Text = "", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1) }, f)
-    local open = false
     local list
     btn.MouseButton1Click:Connect(function()
-        if open and list then list:Destroy() list = nil open = false return end
-        open = true
+        if list then list:Destroy() list = nil return end
         list = mk("ScrollingFrame", {
-            Size = UDim2.new(1, -20, 0, math.min(#values * 22 + 8, 180)), BackgroundColor3 = BG,
-            BorderSizePixel = 0, ScrollBarThickness = 4, ScrollingDirection = Enum.ScrollingDirection.Y,
+            Size = UDim2.new(1, -14, 0, math.min(#values * 18 + 6, 150)), BackgroundColor3 = BG,
+            BorderSizePixel = 0, ScrollBarThickness = 3, ScrollingDirection = Enum.ScrollingDirection.Y,
             AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(0, 0, 0, 0),
         }, parent)
-        round(list, 8) stroke(list)
-        mk("UIListLayout", { Padding = UDim.new(0, 2) }, list)
+        corner(list, 6)
+        mk("UIListLayout", { Padding = UDim.new(0, 1) }, list)
         for _, v in ipairs(values) do
             local b = mk("TextButton", {
-                Text = tostring(v), Font = Enum.Font.Gotham, TextSize = 11, TextColor3 = TXT,
-                BackgroundColor3 = CARD, BorderSizePixel = 0, Size = UDim2.new(1, -8, 0, 20),
+                Text = tostring(v), Font = Enum.Font.Gotham, TextSize = 10, TextColor3 = TXT,
+                BackgroundColor3 = CARD, BorderSizePixel = 0, Size = UDim2.new(1, -6, 0, 17),
                 TextXAlignment = Enum.TextXAlignment.Left,
             }, list)
-            round(b, 4)
+            corner(b, 3)
             b.MouseButton1Click:Connect(function()
                 self.C.set(key, v)
                 label.Text = title .. ": " .. tostring(v)
                 if list then list:Destroy() list = nil end
-                open = false
             end)
         end
     end)
@@ -333,26 +291,37 @@ function UI:dropdown(parent, title, key, values)
 end
 
 function UI:textbox(parent, title, key, placeholder)
-    local f = self:row(parent, title)
+    local f = rowFrame(parent, 34)
+    rowText(f, title)
     local box = mk("TextBox", {
         Text = tostring(self.C.get(key) or ""), PlaceholderText = placeholder or "",
-        Font = Enum.Font.Gotham, TextSize = 11, TextColor3 = TXT, PlaceholderColor3 = DIM,
+        Font = Enum.Font.Gotham, TextSize = 10, TextColor3 = TXT, PlaceholderColor3 = DIM,
         BackgroundColor3 = BG, BorderSizePixel = 0, ClearTextOnFocus = false,
-        Size = UDim2.new(1, -10, 0, 20), Position = UDim2.new(0, 0, 0, 14),
+        Size = UDim2.new(1, -4, 0, 18), Position = UDim2.new(0, 0, 0, 15),
     }, f)
-    round(box, 5) stroke(box)
+    corner(box, 4)
     box:GetPropertyChangedSignal("Text"):Connect(function() self.C.set(key, box.Text) end)
     return f
 end
 
-function UI:filter(q)
-    q = string.lower(q or "")
-    for _, r in ipairs(self.rows) do
-        r.frame.Visible = q == "" or string.find(r.title, q, 1, true) ~= nil
-    end
+function UI:button(parent, title, fn)
+    local f = rowFrame(parent, 18)
+    local label = rowText(f, title)
+    label.TextColor3 = ACCENT
+    local btn = mk("TextButton", { Text = "", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1) }, f)
+    btn.MouseButton1Click:Connect(function() self.U.safe(title, fn) end)
+    return f
 end
 
--- live debug panel ---------------------------------------------------------
+function UI:label(parent, text, color)
+    return mk("TextLabel", {
+        Text = text, Font = Enum.Font.Gotham, TextSize = 10, TextColor3 = color or DIM,
+        BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
+        TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left,
+    }, parent)
+end
+
+-- live debug panel (3 numbers, no labels on separate rows)
 function UI:debug(page, U, C)
     local card = self:card(page, "Debug")
     local l1 = self:label(card, "")
@@ -361,8 +330,8 @@ function UI:debug(page, U, C)
     task.spawn(function()
         while self.gui.Parent do
             local fps = math.floor(1 / math.max(game:GetService("RunService").Heartbeat:Wait(), 1e-3))
-            l1.Text = string.format("FPS %d   PING %d ms", fps, math.floor(U.LP:GetNetworkPing() * 1000))
-            l2.Text = string.format("LV %d   UPTIME %d s   MOBS %d", U.level(), math.floor(os.clock() - t0), #U.mobs())
+            l1.Text = string.format("FPS %d   PING %d ms   MOBS %d", fps, math.floor(U.LP:GetNetworkPing() * 1000), #U.mobs())
+            l2.Text = string.format("LV %d   SEA %s   UPTIME %ds", U.level(), tostring(U.sea), math.floor(os.clock() - t0))
             task.wait(0.5)
         end
     end)
