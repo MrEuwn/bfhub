@@ -332,4 +332,64 @@ function U.ping()
     return ok and math.floor(v) or 0
 end
 
+--=========================================================================
+-- Logger: captures every error (message + traceback + line) raised inside a
+-- pcall wrapper, keeps a ring buffer, can push to a Discord webhook.
+--=========================================================================
+U.logs = {}                 -- ring buffer of strings
+U.LOG_MAX = 200
+U.webhook = nil             -- set via the Log tab
+
+local function stamp()
+    local t = os.date("*t")
+    return ("%02d:%02d:%02d"):format(t.hour, t.minute, t.second)
+end
+
+local lastPush = 0
+function U.logAdd(kind, msg)
+    local line = ("[%s] %s: %s"):format(stamp(), kind, tostring(msg))
+    table.insert(U.logs, line)
+    if #U.logs > U.LOG_MAX then table.remove(U.logs, 1) end
+    print("[BFHub] " .. line)
+    -- auto-report real errors, at most once every 15s, when a webhook is set
+    if kind:sub(1, 5) == "ERROR" and U.webhook and os.clock() - lastPush > 15 then
+        lastPush = os.clock()
+        task.spawn(function() U.sendWebhook("BFHub auto-report") end)
+    end
+    return line
+end
+
+-- Wraps a function so any error is logged with a traceback. Returns a pcall
+-- style (ok, result).
+function U.safe(label, fn, ...)
+    local args = table.pack(...)
+    local ok, res = pcall(fn, table.unpack(args, 1, args.n))
+    if not ok then
+        local tb = debug and debug.traceback and debug.traceback(tostring(res), 2) or tostring(res)
+        U.logAdd("ERROR " .. tostring(label), tostring(res))
+        U.logAdd("TRACE " .. tostring(label), tb)
+    end
+    return ok, res
+end
+
+function U.logText()
+    return table.concat(U.logs, "\n")
+end
+
+function U.sendWebhook(extra)
+    if not U.webhook or U.webhook == "" then return false, "no webhook set" end
+    local body = U.logText()
+    if extra then body = tostring(extra) .. "\n" .. body end
+    if #body > 1900 then body = body:sub(-1900) end
+    local payload = U.Http:JSONEncode({ content = "```" .. body .. "```" })
+    local ok = pcall(function()
+        request({
+            Url = U.webhook, Method = "POST",
+            Headers = { ["Content-Type"] = "application/json" },
+            Body = payload,
+        })
+    end)
+    return ok
+end
+
 return U

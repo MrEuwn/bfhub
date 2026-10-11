@@ -180,6 +180,20 @@ function UI.new(title)
                 l.Parent = rows
                 return l
             end
+            function sec:textbox(label, default, cb)
+                local l = Instance.new("TextLabel")
+                l.Size = UDim2.new(1, 0, 0, 16); l.BackgroundTransparency = 1
+                l.Text = label; l.TextXAlignment = Enum.TextXAlignment.Left
+                l.TextColor3 = Color3.fromRGB(185, 185, 180); l.Font = Enum.Font.Gotham; l.TextSize = 11
+                l.Parent = rows
+                local box = Instance.new("TextBox")
+                box.Size = UDim2.new(1, 0, 0, 26); box.BackgroundColor3 = Color3.fromRGB(34, 34, 40)
+                box.Text = default or ""; box.PlaceholderText = "..."
+                box.TextColor3 = Color3.fromRGB(230, 230, 220); box.Font = Enum.Font.Gotham; box.TextSize = 11
+                box.BorderSizePixel = 0; box.ClearTextOnFocus = false; box.Parent = rows; corner(box, 6)
+                box.FocusLost:Connect(function() if cb then task.spawn(cb, box.Text) end end)
+                return function() return box.Text end
+            end
             function sec:dropdown(label, options, default, cb)
                 local idx = 1
                 for i, o in ipairs(options) do if o == default then idx = i end end

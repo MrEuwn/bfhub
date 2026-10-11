@@ -63,17 +63,17 @@ say("BFHub - Sea " .. tostring(U.currentSea()) .. "  Lv." .. tostring(U.level())
 say("quests: " .. tostring(#C.quests) .. " rows")
 say("repo: " .. REPO .. "@" .. BRANCH)
 
-local ORDER = { "farm", "combat", "fruit", "esp", "teleport", "sea", "bones", "boss", "mastery", "debug", "shop", "misc" }
+local ORDER = { "farm", "combat", "fruit", "esp", "teleport", "sea", "bones", "boss", "mastery", "debug", "log", "shop", "misc" }
 local mods, loaded = {}, {}
 for _, name in ipairs(ORDER) do
-    local mod, merr = run(name, U, UI, C, win)
-    if type(mod) == "table" then
+    local ok, mod = U.safe("load:" .. name, run, name, U, UI, C, win)
+    if ok and type(mod) == "table" then
         mod.name = name
         table.insert(mods, mod)
         table.insert(loaded, name)
         say("[ok] " .. name)
     else
-        say(("[x] %s - %s"):format(name, tostring(merr or mod)))
+        say(("[x] %s - %s"):format(name, tostring(mod)))
     end
 end
 say(("done: %d/%d modules"):format(#loaded, #ORDER))
@@ -81,7 +81,7 @@ say(("done: %d/%d modules"):format(#loaded, #ORDER))
 task.spawn(function()
     while true do
         for _, m in ipairs(mods) do
-            if m.tick then pcall(m.tick) end
+            if m.tick then U.safe("tick:" .. tostring(m.name), m.tick) end
         end
         task.wait(tonumber(C.get("tickRate")) or 0.1)
     end
