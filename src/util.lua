@@ -1,5 +1,6 @@
 -- Shared helpers. No side effects beyond caching services.
 local U = {}
+local C_hitbox = 120   -- current M1 hitbox magnitude (long-range kill aura)
 
 U.Players = game:GetService("Players")
 U.RunService = game:GetService("RunService")
@@ -221,22 +222,37 @@ function U.attackHit(range)
     end)
 end
 
--- Fast attack: neutralise the CombatFramework cooldowns (Redz method).
+-- Fast attack (MUXHUB method). Neutralises every combat cooldown and fires a
+-- REAL left-click at screen centre every call. A big hitboxMagnitude (set via
+-- setHitbox) is what gives the swing its long range, and because the hit is a
+-- genuine M1 the server credits the kill -> money/exp.
 function U.fastAttack()
     pcall(function()
+        local c = U.player.Character
         local AC = debug.getupvalues(require(U.player.PlayerScripts.CombatFramework))[2].activeController
-        AC.increment = 3
-        AC.timeToNextAttack = 0
-        AC.timeToNextBlock = 0
-        AC.focusStart = 0
         AC.attacking = false
-        if AC.humanoid then AC.humanoid.AutoRotate = true end
-        AC.currentAttackTrack = 0
-        if sethiddenproperty then sethiddenproperty(U.player, "SimulationRadius", math.huge) end
+        AC.blocking = false
+        AC.timeToNextAttack = tick() - 1
+        AC.timeToNextBlock = 0
+        AC.increment = 3
+        AC.hitboxMagnitude = C_hitbox or 120
+        if c then
+            local stun = c:FindFirstChild("Stun"); if stun then stun.Value = 0 end
+            local h = c:FindFirstChildOfClass("Humanoid"); if h then h.Sit = false end
+        end
+        U.VirtualUser:CaptureController()
+        local cam = workspace.CurrentCamera
+        local vp = cam and cam.ViewportSize or Vector2.new(1280, 720)
+        U.VirtualUser:Button1Down(Vector2.new(vp.X / 2, vp.Y / 2))
+        U.VirtualUser:Button1Up(Vector2.new(vp.X / 2, vp.Y / 2))
+        local shaker = U.ReplicatedStorage:FindFirstChild("Util")
+        shaker = shaker and shaker:FindFirstChild("CameraShaker")
+        if shaker then pcall(function() require(shaker):Stop() end) end
     end)
 end
 
 function U.setHitbox(mag)
+    C_hitbox = mag
     pcall(function()
         local AC = debug.getupvalues(require(U.player.PlayerScripts.CombatFramework))[2].activeController
         AC.hitboxMagnitude = mag
@@ -443,15 +459,11 @@ end
 -- the player gets money/exp. (Setting Health = 0 does NOT — that is instakill,
 -- visual only, no rewards.)
 function U.killAura(radius)
-    radius = radius or 300
+    radius = radius or 120
     U.simRadius()
-    U.setHitbox(radius)
-    U.fastAttack()
-    U.attackHit(radius)
-    pcall(function()
-        U.VirtualUser:CaptureController()
-        U.VirtualUser:Button1Down(Vector2.new(math.huge, math.huge))
-    end)
+    U.setHitbox(radius)      -- wide M1 reach
+    U.fastAttack()           -- real, credited hit
+    U.attackHit(radius)      -- also fire the rig hit for good measure
 end
 
 -- Instakill: set Health = 0 directly. Instant clear but the server does NOT
@@ -497,6 +509,8 @@ function U.bringMob(name, dist)
                     pp.Size = Vector3.new(50, 50, 50)
                     h.WalkSpeed = 0
                     h.JumpPower = 0
+                    h.PlatformStand = true
+                    h.Sit = true
                     h:ChangeState(14)
                     local an = h:FindFirstChild("Animator"); if an then an:Destroy() end
                     if m:FindFirstChild("Head") then m.Head.CanCollide = false end

@@ -53,7 +53,8 @@ C.quests = (type(quests) == "table") and quests or {}
 C.set("useTween", true)
 C.set("fly", true)
 C.set("auraRadius", 30)
-C.set("hitbox", 60)
+C.set("hitbox", 120)
+C.set("auraRadius", 120)
 
 local win = UI.new("Raf's Personal Script")
 C.win = win
