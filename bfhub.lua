@@ -55,6 +55,8 @@ C.set("fly", true)
 C.set("auraRadius", 30)
 C.set("hitbox", 120)
 C.set("auraRadius", 120)
+C.set("hoverY", 30)
+C.set("bringDist", 400)
 
 local win = UI.new("Raf's Personal Script")
 C.win = win

@@ -24,8 +24,12 @@ return function(U, UI, C, win)
 
     -- bring mob: pull EVERY mob whose type matches the one being farmed onto
     -- the player, so the whole cluster stays in M1 range while you hover.
+    -- anchor the cluster at a fixed point in front of us, then hover slightly
+    -- above it so the M1 always sweeps through the enlarged mob hitboxes.
     local function bringSameType(name)
-        U.bringMob(name, C.get("bringDist") or 300)
+        local r = U.root(); if not r then return end
+        local anchor = r.CFrame * CFrame.new(0, 0, -6)
+        U.magnetMob(name, anchor, C.get("bringDist") or 400)
     end
 
     -- Travel to a mob and attack it. NoClip is forced on while moving so tween
@@ -35,10 +39,11 @@ return function(U, UI, C, win)
         local h = mob:FindFirstChildOfClass("Humanoid")
         local hrp = mob:FindFirstChild("HumanoidRootPart")
         if not h or not hrp or h.Health <= 0 then return false end
-        if bring then bringSameType(name) end          -- pull the cluster to us
+        if bring then bringSameType(name) end          -- pin the cluster near us
         U.applyNoClip(true)                            -- no wall clipping
         U.hover(true)                                  -- float, never fall
-        local dest = hrp.Position + Vector3.new(0, 12, 0)
+        -- hover 30 studs above the (now 60-stud) hitbox so the swing overlaps it
+        local dest = hrp.Position + Vector3.new(0, C.get("hoverY") or 30, 0)
         if C.get("useTween") == false then r.CFrame = CFrame.new(dest)
         else U.tweenTo(CFrame.new(dest), C.get("tweenTime") or 0.25) end
         U.touch(r, hrp)
@@ -114,7 +119,8 @@ return function(U, UI, C, win)
     s:toggle("Use Tween (smooth travel)", true, function(on) C.set("useTween", on) end)
     s:toggle("Fly / Hover (never fall)", true, function(on) C.set("fly", on) end)
     s:toggle("Bring Mob (all same type)", true, function(on) bring = on end)
-    s:dropdown("Bring Distance", { "100", "200", "300", "500" }, "300", function(v) C.set("bringDist", tonumber(v)) end)
+    s:dropdown("Bring Distance", { "100", "200", "300", "500" }, "400", function(v) C.set("bringDist", tonumber(v)) end)
+    s:dropdown("Hover Height", { "15", "30", "45", "60" }, "30", function(v) C.set("hoverY", tonumber(v)) end)
     s:toggle("NoClip (no wall clipping while moving)", false, function(on) C.set("noclipAlways", on) end)
     s:toggle("Auto Farm Nearest", false, function(on) mode = on and "nearest" or nil end)
 

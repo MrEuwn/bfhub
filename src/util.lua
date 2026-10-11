@@ -489,38 +489,39 @@ function U.instakill(radius)
     end
 end
 
--- Bring Mob: drag every mob of the given type onto the player, freeze it and
--- enlarge its hitbox so M1 always connects. Without simRadius the server snaps
--- them back (that is the "visual only" bug).
-function U.bringMob(name, dist)
+-- Magnet / Bring Mob (MUXHUB method). The mob is pinned to a FIXED anchor in
+-- front of the player and its HumanoidRootPart is blown up to 60 studs, so the
+-- M1 hitbox always overlaps it even when the mob would otherwise sit below you.
+-- Without the size bump the mob's tiny real hitbox never meets the swing.
+function U.magnetMob(name, anchor, dist)
     local r = U.root(); if not r or not name then return end
-    dist = dist or 300
+    dist = dist or 400
+    anchor = anchor or (r.CFrame * CFrame.new(0, 0, -6))
     U.simRadius()
-    local function bring(_, m)
-        if m.Name ~= name and not string.find(m.Name, name, 1, true) then return end
+    local function fix(_, m)
+        if not (m.Name == name or string.find(m.Name, name, 1, true)) then return end
         local h = m:FindFirstChildOfClass("Humanoid")
-        local pp = m.PrimaryPart
-        if h and h.Health > 0 and pp then
-            local mag = (pp.Position - r.Position).Magnitude
-            if mag < dist and mag >= 1 then
-                pcall(function()
-                    pp.CFrame = r.CFrame * CFrame.new(0, 0, -3)
-                    pp.CanCollide = false
-                    pp.Size = Vector3.new(50, 50, 50)
-                    h.WalkSpeed = 0
-                    h.JumpPower = 0
-                    h.PlatformStand = true
-                    h.Sit = true
-                    h:ChangeState(14)
-                    local an = h:FindFirstChild("Animator"); if an then an:Destroy() end
-                    if m:FindFirstChild("Head") then m.Head.CanCollide = false end
-                end)
-            end
-        end
+        local hrp = m:FindFirstChild("HumanoidRootPart") or m.PrimaryPart
+        if not (h and h.Health > 0 and hrp) then return end
+        local mag = (hrp.Position - r.Position).Magnitude
+        if mag > dist then return end
+        pcall(function()
+            hrp.Size = Vector3.new(60, 60, 60)     -- huge hitbox -> always hittable
+            hrp.CanCollide = false
+            hrp.Transparency = 1                   -- hide the box
+            h.PlatformStand = true
+            h.Sit = true
+            h.WalkSpeed = 0
+            h.JumpPower = 0
+            local an = h:FindFirstChild("Animator"); if an then an:Destroy() end
+            hrp.CFrame = anchor                    -- pinned, not chasing the player
+        end)
     end
     local e = U.enemies()
-    if e then for _, m in ipairs(e:GetChildren()) do bring(nil, m) end end
+    if e then for _, m in ipairs(e:GetChildren()) do fix(nil, m) end end
 end
+
+U.bringMob = U.magnetMob
 
 -- Auto Haki: buso is a state flag on the character, not a fire-and-forget call.
 function U.autoHaki()
