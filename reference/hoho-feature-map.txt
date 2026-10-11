@@ -1,0 +1,1829 @@
+# HoHo Hub feature map (extracted from its own readable HoHoGuiBuild.json)
+# Source: https://github.com/acsu123/HohoV2 main/BloxFruit/train-ai/HoHoGuiBuild.json
+
+  FARM CONFIG
+    READ ME
+      If you see ⚠️ in the button meaning that feature are risky
+      Anti Ban will make you auto rejoin after 30m but you can disable it in config
+      Yоu саn rеаԁ mоrе аbоut blох fruіt аntі-сhеаt оn ԁіsсоrԁ.gg/hоhоhub
+      Chat -tog to toggle the ui
+    CONFIG
+      Select Weapon : Melee
+      Blox Fruit
+      Auto Buso
+      Auto Ken
+      Remove Ken Blur
+      Auto On Race
+      Auto On Race V4
+      Auto Ally
+      Auto Click
+      Stop Script Click
+      Noclip
+      No Stun
+      Unbreakable
+      Farm Boss With Skills [Config in SB cf]
+      Switch Tool On % Left
+      Only Farm Mas If RaceV4
+      Farm Fruit With Transform
+      Auto Config Fruit Skill
+      Auto Config Gun Skill
+      Auto Use All Skill When Farming
+      Go Near Z
+      Auto Hold Z
+      Go Near X
+      Auto Hold X
+      Go Near C
+      Auto Hold C
+      Go Near V
+      Auto Hold V
+      Go Near F
+      Auto Hold F
+      Check Account Flagged
+      Bypass Anti Cheat
+      Anti Ban/Reset
+      Hop If Admin Join
+      Leave If Admin Join
+      Hop If Player Near While Farming
+      Reset Character Tp
+      Spawn Teleport
+      Portal Teleport
+      Submarine Teleport
+      Halloween Teleport
+      TP Moving
+      Portal Fruit Teleport
+      Auto Leave Portal Ulti
+      Select Method Farm : Triple Quest
+      Single Quest
+      Double Quest
+      Triple Quest
+      Select Team : Marine
+      Pirate
+      Marine
+      Bring Mobs V2
+      Bring Mobs
+      No Camera Shake
+      Multi Damage M1
+      Fast Attack
+      Fast Attack Ping Counter
+      Multi Damage Shoot
+      Fast Fruit M1
+      Fruit M1 Aura
+      No Skill CD
+      FPS Boost
+      Game Notify
+      White Screen
+      View Hitbox
+      Tween Speed
+      Random Distance Farm
+      Spin Around Farm
+      Under Mob Farm
+      Heal When Low (<30%)
+      Distance From X
+      Distance From Y
+      Distance From Z
+      Farm Hop Server
+      SB/SHIP Farm Only Gun
+      SB/SHIP Use Melee
+      SB/SHIP Melee Skills
+      SB/SHIP Use Sword
+      SB/SHIP Sword Skills
+      SB/SHIP Use Fruit
+      SB/SHIP Fruit Skills
+      SB/SHIP Use Gun
+      SB/SHIP Gun Skills
+    STATS
+      Ken Exp: 0
+      Elite Boss Defeated: false
+      Check My Boost
+      Bounty
+      Accessory
+      Auto +Melee
+      Auto +Sword
+      Auto +Gun
+      Auto +Defense
+      Auto +Fruit
+    KEY INFO
+      Key Expire in: Never
+      Copy Key Link
+      Paste Key Here
+    AUTO TRADE
+      Values from bloxfruitsvalues.com
+      Trade Caculator
+      Start Auto Trade
+      LOCKED
+      Trade Webhook (config in webhook page)
+      LOCKED
+      Config Auto Trade Rule
+      Set Min Profit (Diff)
+      Set Min Demand (Their)
+      Set Min Trade Value (Their)
+      Set N/A Value
+      Set N/A Demand
+      Never Trade (split by , ex: Kitsune,West Dragon)
+  NORMAL FARM
+    AUTO FARM LEVEL
+      Farm Level Take Quest
+      Select Weapon : Melee
+      Blox Fruit
+      Auto Farm Level
+      Select Method Farm : Triple Quest
+      Single Quest
+      Double Quest
+      Triple Quest
+    FARM SYNC GLOBAL
+      FarmSync Cake Prince
+      FarmSync Dark Beard
+      FarmSync Dough King
+      FarmSync Rip Indra
+    AUTO FARM QUEST
+      Select Quest : 
+      Trainee - Lv.0
+      Monkey - Lv.10
+      Gorilla - Lv.15
+      The Gorilla King - Lv.20
+      Pirate - Lv.30
+      Brute - Lv.40
+      Chef - Lv.55
+      Desert Bandit - Lv.60
+      Desert Officer - Lv.75
+      Snow Bandit - Lv.90
+      Snowman - Lv.100
+      Yeti - Lv.105
+      Chief Petty Officer - Lv.120
+      Vice Admiral - Lv.130
+      Sky Bandit - Lv.150
+      Dark Master - Lv.175
+      Prisoner - Lv.190
+      Dangerous Prisoner - Lv.210
+      Warden - Lv.220
+      Chief Warden - Lv.230
+      Swan - Lv.240
+      Toga Warrior - Lv.250
+      Gladiator - Lv.275
+      Military Soldier - Lv.300
+      Military Spy - Lv.325
+      Magma Admiral - Lv.350
+      Fishman Warrior - Lv.375
+      Fishman Commando - Lv.400
+      Fishman Lord - Lv.425
+      God's Guard - Lv.450
+      Shanda - Lv.475
+      Wysper - Lv.500
+      Royal Squad - Lv.525
+      Royal Soldier - Lv.550
+      Thunder God - Lv.575
+      Galley Pirate - Lv.625
+      Galley Captain - Lv.650
+      Cyborg - Lv.675
+      Raider - Lv.700
+      Mercenary - Lv.725
+      Diamond - Lv.750
+      Swan Pirate - Lv.775
+      Factory Staff - Lv.800
+      Jeremy - Lv.850
+      Marine Lieutenant - Lv.875
+      Marine Captain - Lv.900
+      Orbitus - Lv.925
+      Zombie - Lv.950
+      Vampire - Lv.975
+      Snow Trooper - Lv.1000
+      Winter Warrior - Lv.1050
+      Lab Subordinate - Lv.1100
+      Horned Warrior - Lv.1125
+      Smoke Admiral - Lv.1150
+      Magma Ninja - Lv.1175
+      Lava Pirate - Lv.1200
+      Ship Deckhand - Lv.1250
+      Ship Engineer - Lv.1275
+      Ship Steward - Lv.1300
+      Ship Officer - Lv.1325
+      Arctic Warrior - Lv.1350
+      Snow Lurker - Lv.1375
+      Awakened Ice Admiral - Lv.1400
+      Sea Soldier - Lv.1425
+      Water Fighter - Lv.1450
+      Tide Keeper - Lv.1475
+      Pirate Millionaire - Lv.1500
+      Pistol Billionaire - Lv.1525
+      Stone - Lv.1550
+      Dragon Crew Warrior - Lv.1575
+      Dragon Crew Archer - Lv.1600
+      Hydra Enforcer - Lv.1625
+      Venomous Assailant - Lv.1650
+      Hydra Leader - Lv.1675
+      Marine Commodore - Lv.1700
+      Marine Rear Admiral - Lv.1725
+      Kilo Admiral - Lv.1750
+      Fishman Raider - Lv.1775
+      Fishman Captain - Lv.1800
+      Forest Pirate - Lv.1825
+      Mythological Pirate - Lv.1850
+      Captain Elephant - Lv.1875
+      Jungle Pirate - Lv.1900
+      Musketeer Pirate - Lv.1925
+      Beautiful Pirate - Lv.1950
+      Reborn Skeleton - Lv.1975
+      Living Zombie - Lv.2000
+      Demonic Soul - Lv.2025
+      Posessed Mummy - Lv.2050
+      Peanut Scout - Lv.2075
+      Peanut President - Lv.2100
+      Ice Cream Chef - Lv.2125
+      Ice Cream Commander - Lv.2150
+      Cake Queen - Lv.2175
+      Cookie Crafter - Lv.2200
+      Cake Guard - Lv.2225
+      Baking Staff - Lv.2250
+      Head Baker - Lv.2275
+      Cocoa Warrior - Lv.2300
+      Chocolate Bar Battler - Lv.2325
+      Sweet Thief - Lv.2350
+      Candy Rebel - Lv.2375
+      Candy Pirate - Lv.2400
+      Snow Demon - Lv.2425
+      Isle Outlaw - Lv.2450
+      Island Boy - Lv.2475
+      Sun-kissed Warrior - Lv.2500
+      Isle Champion - Lv.2525
+      Serpent Hunter - Lv.2550
+      Skull Slayer - Lv.2575
+      Reef Bandit - Lv.2600
+      Coral Pirate - Lv.2625
+      Sea Chanter - Lv.2650
+      Ocean Prophet - Lv.2675
+      Farm Selected Quest
+    AUTO FARM NEAREST
+      Farm Nearest Distance
+    AUTO FARM GUN MASTERY
+      Use Gun Z
+      Go Gun Near Z
+      Use Gun X
+      Go Gun Near X
+      Auto Gun Mastery
+      Auto Config Gun Skill
+      Switch Tool On % Left
+    AUTO FARM FRUIT MASTERY
+      Auto Config Fruit Skill
+      Go Near Z
+      Auto Hold Z
+      Go Near X
+      Auto Hold X
+      Go Near C
+      Auto Hold C
+      Go Near V
+      Auto Hold V
+      Go Near F
+      Auto Hold F
+      Auto Fruit Mastery
+      Farm Fruit With Transform
+      Switch Tool On % Left
+    FRUIT FARM
+      Select Fruit : Light-Light
+      Rocket-Rocket
+      Spin-Spin
+      Blade-Blade
+      Spring-Spring
+      Bomb-Bomb
+      Smoke-Smoke
+      Spike-Spike
+      Flame-Flame
+      Ice-Ice
+      Sand-Sand
+      Dark-Dark
+      Eagle-Eagle
+      Diamond-Diamond
+      Light-Light
+      Rubber-Rubber
+      Ghost-Ghost
+      Magma-Magma
+      Quake-Quake
+      Buddha-Buddha
+      Love-Love
+      Creation-Creation
+      Spider-Spider
+      Sound-Sound
+      Phoenix-Phoenix
+      Portal-Portal
+      Lightning-Lightning
+      Pain-Pain
+      Blizzard-Blizzard
+      Gravity-Gravity
+      Mammoth-Mammoth
+      T-Rex-T-Rex
+      Dough-Dough
+      Shadow-Shadow
+      Venom-Venom
+      Gas-Gas
+      Spirit-Spirit
+      Tiger-Tiger
+      Yeti-Yeti
+      Kitsune-Kitsune
+      Control-Control
+      Dragon-Dragon
+      Buy Selected Fruit
+      Auto Buy Fruit Selected
+      Select Fruit List
+      Rocket-Rocket
+      Spin-Spin
+      Blade-Blade
+      Spring-Spring
+      Bomb-Bomb
+      Smoke-Smoke
+      Spike-Spike
+      Flame-Flame
+      Ice-Ice
+      Sand-Sand
+      Dark-Dark
+      Eagle-Eagle
+      Diamond-Diamond
+      Light-Light
+      Rubber-Rubber
+      Ghost-Ghost
+      Magma-Magma
+      Quake-Quake
+      Buddha-Buddha
+      Love-Love
+      Creation-Creation
+      Spider-Spider
+      Sound-Sound
+      Phoenix-Phoenix
+      Portal-Portal
+      Lightning-Lightning
+      Pain-Pain
+      Blizzard-Blizzard
+      Gravity-Gravity
+      Mammoth-Mammoth
+      T-Rex-T-Rex
+      Dough-Dough
+      Shadow-Shadow
+      Venom-Venom
+      Gas-Gas
+      Spirit-Spirit
+      Tiger-Tiger
+      Yeti-Yeti
+      Kitsune-Kitsune
+      Control-Control
+      Dragon-Dragon
+      Auto Eat Fruit Selected
+      Random Fruit
+      Auto Random Fruit
+      Auto Collect Fruit
+      Check Fruit Storeable
+      Find Unknown Fruit
+      Auto Store Fruit
+      Auto Drop Fruit
+      Fruit Spawn Notify
+      Remove Fruit Gacha Effect
+    STACK FARM
+      STOP SCRIPT TO CONFIG
+      Stack Farm (Kaitun)
+      Farm All Melee To 600 Mastery
+      Farm All Sword To 600 Mastery
+      Farm All Gun To 600 Mastery
+    AUTO FARM BOSS
+      Auto Farm All Bosses
+      Auto Farm Selected Boss
+      Get Boss Quest
+      Boss Farm Server Hop
+      Select Boss : None
+      Warden
+      Hydra Leader
+      Kilo Admiral
+      Awakened Ice Admiral
+      Captain Elephant
+      Wysper
+      Thunder God
+      Magma Admiral
+      Vice Admiral
+      Cake Queen
+      Tide Keeper
+      Jeremy
+      Orbitus
+      Beautiful Pirate
+      Fishman Lord
+      Smoke Admiral
+      The Gorilla King
+      Diamond
+      Chief Warden
+      Cyborg
+    AUTO FARM RAID BOSS
+      Auto Farm Selected Raid Boss
+      Raid Boss Farm Hop Server
+      Active Aura Colors Button
+      Select Raid Boss : None
+      Greybeard
+      Cursed Captain
+      Darkbeard
+      Soul Reaper
+      rip_indra True Form
+      Cake Prince
+      Dough King
+      Terrorshark
+      Tyrant of the Skies
+      Red Commander
+      Rip Commander
+    AUTO FARM KEN HAKI
+      Auto Farm Ken Haki
+      Ken Farm Hop Server
+    AUTO FARM MOBS
+      Select Multi Mob
+      Mercenary
+      Swan Pirate
+      Sweet Thief
+      Ship Engineer
+      Pirate
+      Snow Lurker
+      Snow Demon
+      Shanda
+      Marine Rear Admiral
+      Desert Officer
+      Desert Bandit
+      Royal Squad
+      Reef Bandit
+      Prisoner
+      Jungle Pirate
+      Factory Staff
+      Candy Pirate
+      Marine Commodore
+      Military Soldier
+      Gorilla
+      Coral Pirate
+      Pistol Billionaire
+      Mythological Pirate
+      Horned Warrior
+      Living Zombie
+      Military Spy
+      Ship Deckhand
+      Cocoa Warrior
+      Musketeer Pirate
+      Hydra Enforcer
+      Toga Warrior
+      Dark Master
+      Pirate Millionaire
+      Reborn Skeleton
+      Lava Pirate
+      Dragon Crew Archer
+      Fishman Commando
+      God's Guard
+      Dangerous Prisoner
+      Isle Outlaw
+      Galley Captain
+      Ship Officer
+      Trainee
+      Marine Captain
+      Chief Petty Officer
+      Head Baker
+      Lab Subordinate
+      Monkey
+      Peanut Scout
+      Vampire
+      Sea Chanter
+      Snowman
+      Zombie
+      Galley Pirate
+      Fishman Warrior
+      Candy Rebel
+      Ice Cream Commander
+      Sky Bandit
+      Gladiator
+      Snow Trooper
+      Skull Slayer
+      Fishman Captain
+      Arctic Warrior
+      Marine Lieutenant
+      Dragon Crew Warrior
+      Winter Warrior
+      Royal Soldier
+      Venomous Assailant
+      Chocolate Bar Battler
+      Cookie Crafter
+      Baking Staff
+      Demonic Soul
+      Magma Ninja
+      Ice Cream Chef
+      Cake Guard
+      Snow Bandit
+      Ship Steward
+      Raider
+      Peanut President
+      Island Boy
+      Posessed Mummy
+      Fishman Raider
+      Water Fighter
+      Serpent Hunter
+      Forest Pirate
+      Isle Champion
+      Ocean Prophet
+      Sea Soldier
+      Sun-kissed Warrior
+      Auto Farm Multi Mob
+      Select Mob : None
+      Mercenary
+      Swan Pirate
+      Sweet Thief
+      Ship Engineer
+      Pirate
+      Snow Lurker
+      Snow Demon
+      Shanda
+      Marine Rear Admiral
+      Desert Officer
+      Desert Bandit
+      Royal Squad
+      Reef Bandit
+      Prisoner
+      Jungle Pirate
+      Factory Staff
+      Candy Pirate
+      Marine Commodore
+      Military Soldier
+      Gorilla
+      Coral Pirate
+      Pistol Billionaire
+      Mythological Pirate
+      Horned Warrior
+      Living Zombie
+      Military Spy
+      Ship Deckhand
+      Cocoa Warrior
+      Musketeer Pirate
+      Hydra Enforcer
+      Toga Warrior
+      Dark Master
+      Pirate Millionaire
+      Reborn Skeleton
+      Lava Pirate
+      Dragon Crew Archer
+      Fishman Commando
+      God's Guard
+      Dangerous Prisoner
+      Isle Outlaw
+      Galley Captain
+      Ship Officer
+      Trainee
+      Marine Captain
+      Chief Petty Officer
+      Head Baker
+      Lab Subordinate
+      Monkey
+      Peanut Scout
+      Vampire
+      Sea Chanter
+      Snowman
+      Zombie
+      Galley Pirate
+      Fishman Warrior
+      Candy Rebel
+      Ice Cream Commander
+      Sky Bandit
+      Gladiator
+      Snow Trooper
+      Skull Slayer
+      Fishman Captain
+      Arctic Warrior
+      Marine Lieutenant
+      Dragon Crew Warrior
+      Winter Warrior
+      Royal Soldier
+      Venomous Assailant
+      Chocolate Bar Battler
+      Cookie Crafter
+      Baking Staff
+      Demonic Soul
+      Magma Ninja
+      Ice Cream Chef
+      Cake Guard
+      Snow Bandit
+      Ship Steward
+      Raider
+      Peanut President
+      Island Boy
+      Posessed Mummy
+      Fishman Raider
+      Water Fighter
+      Serpent Hunter
+      Forest Pirate
+      Isle Champion
+      Ocean Prophet
+      Sea Soldier
+      Sun-kissed Warrior
+      Auto Farm Selected Mob
+      Get Selected Mob Quest
+    AUTO FARM MATERIAL
+      Select Weapon Upgrade : Sword
+      Auto Upgrade Selected Weapon
+      Select Material : None
+      Angel Wings
+      Leather
+      Magma Ore
+      Scrap Metal
+      Fish Tail
+      Gunpowder
+      Mini Tusk
+      Mystic Droplet
+      Radioactive Material
+      Vampire Fang
+      Conjured Cocoa
+      Dragon Scale
+      Volt Capsule
+      Nightmare Catcher
+      Auto Farm Selected Material
+    AUTO FARM SCROLL
+      Auto Enchant use selected scroll to enchant.
+      Select Enchant Weapon : Sword
+      Fishing Rod
+      Select Enchant Target : Sharpshooter
+      --Weapon Enchant--
+      Curse of the Thief
+      Curse of the Reaper
+      Frozen
+      Burning
+      Unreal
+      Unbreakable
+      Strong Grip
+      Sharpshooter
+      Masterpiece
+      Deadly
+      Efficient
+      Elemental
+      Fortune
+      Natural
+      Piercing
+      Siphon
+      Vampiric
+      --Fishing Rod Enchant--
+      Curse of the Leviathan
+      Curse of the Whale
+      Curse of the Terrorshark
+      Blessing of an Angler's Treasure
+      Blessing of Bait Efficiency
+      Baitless Catch
+      Experience Sharing
+      Fish Scanner
+      Resilient Fishing Rod
+      Tasty Bait
+      Target Max Enchant (Common) Level
+      Auto Enchant Weapon
+      Open Enchant UI
+      Config Sea Event Farm Before Auto Farm Scroll!
+      For Leg/Mythical Scroll You Have To Get Leviathan Items By Urself.
+      Select Scroll : Common
+      Common
+      Legendary
+      Mythical
+      Auto Farm Selected Scroll
+    AUTO FARM CAMPFIRE
+      Open Campfire UI
+      Config auto fishing before auto farm campfire items.
+      Select Campfire Item : Lava Potion
+      Big Head Elixir
+      Aggro Elixir
+      Fragments Elixir
+      Invisibility Potion
+      Gate Potion
+      Disguise Elixir
+      Lava Bomb Elixir
+      Monster Mash Elixir
+      Suspicious Growth Potion
+      Loot Seeker
+      Pumpkin Potion
+      Monk Potion
+      Berserkers Elixir
+      Oni Soul
+      Fish Kebab
+      Lava Potion
+      Fortune Elixir
+      Materials Elixir
+      Auto Farm Selected Campfire Item
+    AUTO FARM CHEST
+      Auto Farm Chest
+      Farm Chest Bypass TP
+      Farm Chest Hop Server
+    AUTO COLLECT BERRY
+      Auto Collect Berry
+    RODISCORD HOP FARM
+      Login to RoDiscord before use (topbar)!
+      `Select Channel` u wanna hop then put string in `String To Hop`
+      Ex: Select 〔👹〕raidboss-servers then put `Cake Prince` in `String To Hop`
+      Rocord Hop Farm
+      String To Hop
+      Select Channel : 〔🍑〕fruit-servers
+      〔🥝〕only-good-fruits
+      〔🍑〕fruit-servers
+      〔⚔〕sword-legend-servers
+      〔🎨〕legend-aura-color-servers
+      〔🏝〕mirage-servers
+      〔🦊〕kitsune-servers
+      〔🌋〕prehistoric-servers
+      〔🍒〕berries-servers
+      〔🌚〕moon-servers
+      〔👹〕raidboss-servers
+      〔🧊〕bribed-servers
+  RAID & EVENT
+    RAIDS
+      Auto Raid
+      Delay Raid (100% get rewards)
+      Auto Buy Chip
+      Auto Awake Fruit
+      Auto Trade Fruits < 1M
+      Kill Aura
+      Kill Aura V2 [Raid Only]
+      Select Raid : None
+      Auto Select
+      Spider
+      Rumble
+      Buddha
+      Phoenix
+    DUNGEON
+      Select Dungeon : Normal
+      Normal
+      Challenge
+      Auto Join Dungeon
+      Auto Dungeon
+      Auto Next Dungeon
+      Auto Select Card
+      Auto Returning Hub
+    ADMIN PANEL
+      Open Admin Panel
+      Auto Admin Panel
+    VALENTINE 2026
+      Auto Valentine Gacha
+      Open Valentine Shop
+      Auto Valentine Daily Quest
+      Auto Valentine Delivery Quest
+      Just auto farm level to get Hearts!
+      Auto Buy Light Pink Aura
+      Auto Buy Cupid's Coat
+      Auto Buy Heart Shades
+      Auto Buy 2x Exp
+    CHRISTMAS 2025
+      Auto Christmas Gacha
+      Candy Shop 🍬
+      2x Exp 🍬50
+      Stats Reset 🍬75
+      Race Reroll 🍬100
+      200 Frags 🍬50
+      500 Frags 🍬100
+      Elf Hat 🍬250
+      Santa Hat 🍬500
+      Sleigh 🍬1000
+      Auto Collect Gift
+      Auto Store Gift
+      Buy 2x Exp 50🍬
+      Buy 500 Frags 100🍬
+    HALLOWEEN 2025
+      Roll Halloween Event
+      Auto Roll Halloween Event
+      Auto Trick or Treat
+    CELEBRATION EVENT
+      Auto Attack Celebration Event
+      Auto Set Golden Fishing Spot
+      Auto Set Rip Fishing Spot
+      Auto Set Oni Fishing Spot
+      Join/Leave Celebration Event
+      Roll Celebration Event
+      Auto Roll Celebration Event
+      Select Event Team : Red Army
+      Rip Family
+      Red Army
+      Join Selected Team
+    FISHING TOURNAMENT EVENT
+      Auto Set Golden Fishing Spot
+    RIP EVENT
+      Auto Rip Commander
+      Auto Celestial Soldier
+      Roll Rip Event 250
+      Auto Roll Rip Event 250
+      Auto Set Rip Fishing Spot
+      Auto Sell Celestial Fish
+    RED WEEK (ONI)
+      Auto Red Commander
+      Auto Oni Soldier
+      Roll Oni Event 250
+      Auto Roll Oni Event 250
+      Auto Set Oni Fishing Spot
+      Auto Sell Corrupted Fish
+    SUMMER WEEK 2025
+      Auto Pain Cloud Event
+      Auto Lightning Strikes Event
+      Roll Summer Event 500
+      Auto Roll Summer Event 500
+  FIRST SEA
+    AUTO SECOND SEA
+    AUTO DARK BLADE V2
+    AUTO FARM SABER
+    AUTO SHARK SAW
+    AUTO COAT
+    AUTO WARDEN SWORD
+    AUTO PINK COAT
+    AUTO REFINED MUSKET
+    AUTO TRIDENT
+    AUTO BAZOOKA
+    AUTO POLE (1ST FORM)
+    AUTO COOL SHADES
+  SECOND SEA
+    AUTO THIRD SEA
+    AUTO WARRIOR HELMET
+    AUTO GODHUMAN MATERIALS
+    AUTO SUPERHUMAN
+    AUTO DEATH STEP
+    AUTO SHARKMAN KARATE
+    AUTO FACTORY
+    AUTO ECTOPLASM
+    AUTO RACE V2
+    AUTO RACE V3
+    AUTO CYBORG RACE
+    AUTO GHOUL RACE
+    AUTO LAW RAID
+      Buy Law Chip
+      Auto Law Raid
+    AUTO DARK BLADE SKIN
+    AUTO DARK COAT
+    AUTO RENGOKU
+    AUTO LONG SWORD
+    AUTO BLACK SPIKEY COAT
+    AUTO GRAVITY CANE
+    AUTO JITTE
+    AUTO DRAGON TRIDENT
+  THIRD SEA
+    AUTO FARM BONES
+    AUTO PIRATE RAID
+    AUTO DRAGON TALON
+    AUTO ELECTRIC CLAW
+    AUTO GOD HUMAN
+    AUTO SHARKMAN KARATE V3
+    AUTO RAINBOW HAKI
+    AUTO INSTINCT/KEN V2
+    AUTO ELITE BOSS
+    AUTO SOUL GUITAR
+    AUTO POLE V2
+    AUTO TUSHITA
+    AUTO YAMA
+    AUTO CURSED DUAL KATANA
+    AUTO CAKE PRINCE
+    AUTO DOUGH KING
+    AUTO TYRANT OF THE SKIES
+    AUTO OPEN DOUGH RAID
+    AUTO OPEN PHOENIX RAID
+    AUTO VALKYRIE HELMET
+      Active Aura Colors Button
+    AUTO DARK DAGGER
+      Active Aura Colors Button
+    AUTO PALE SCARF
+    AUTO SPIKEY TRIDENT
+    AUTO HALLOW SCYTHE
+    AUTO HOLY CROWN
+    AUTO CANVANDER
+    AUTO PILOT HELMET
+    AUTO SERPENT BOW
+    AUTO LEI
+    AUTO TWIN HOOKS
+    AUTO BUDDY SWORD
+  RACE V4
+    MIRAGE ISLAND
+      Disable Weather
+      Tween To Mirage Island
+      Tween To Fruit Dealer
+      Tween To Blue Gear
+      Tween To Highest Mountain
+      Sail Until Mirage
+      Stop When Mirage Island
+      Collect All Mirage Chests
+    GEAR & PULL LEVER
+      Auto Pull Lever
+      Auto Collect Gear
+      Auto Look Moon
+      Auto Zoom In
+    AUTO TRIAL
+      TP Temple Of Time
+      TP Pull Lever
+      TP Race Door
+      TP Temple Clock
+      TP Acient One
+      TP Race Trial
+      Safe Zone
+      PVP Zone
+      Auto Race Trial
+      Auto Kill Trial
+      Auto Upgrade Gear
+      Auto Train Race
+  SEA EVENT
+    ROUGH SEA
+      Auto Sail Sea
+      Disable Weather
+      Remove Rocks
+      Noclip Boat
+      Spin Boat
+      Bring Boat
+      Sea Zone
+      Select Boat : Guardian
+      BeastHunter
+      Guardian
+      Lantern
+      PirateBrigade
+      MarineBrigade
+      PirateBasic
+      MarineBasic
+      Sea Event Boat
+      Buy Boat
+      Bring Boat
+      Fly Boat Tool
+      Change Boat Speed
+    SHIPWRIGHT
+      Talk To Shipwrite Teacher
+      Talk To Helmsman Teacher
+      Auto Repair Boat
+      Auto Farm Woods
+    FISHING
+      Auto Fishing [Stand Near Water]
+      Auto Fishing V2
+      Auto Angler Quest [Enable Auto Fishing]
+      Skip Angler Epic/Mythic Quest
+      Auto Sell Fish
+      Auto Open Fishing Chest
+      Select Bait : Basic Bait
+      Basic Bait
+      Kelp Bait
+      Good Bait
+      Epic Bait
+      Carnivore Bait
+      Abyssal Bait
+      Frozen Bait
+      Auto Buy Bait
+      Buy Selected Bait
+      Sell Fishes
+      Fishing Index
+      Job Stats
+      Auto Fish Slap
+      100% Perfect Cast
+      Instant Catch Fish
+      Instant Catch Chest
+      Fishing Line Color
+    SEA EVENT
+      Dodge Terrorshark Skill
+      Attack Terrorshark
+      Attack Fishes
+      Attack Ship Raids
+      Collect Sea Chests
+    KITSUNE ISLAND
+      Trade Azure Embers
+      Collect Azure Embers
+      Sail Kitsune Island
+      Sail When Full Moon
+    LEVIATHAN
+      Auto Follow Group > 4 Players
+      Talk To Spy
+      Tween to Frozen Dimension
+      TP Complete Leviathan Quest
+      Stop When Frozen Dimension
+      Attack Leviathan
+      Auto Bribe Spy
+      Auto Start Frozen Watcher
+      Auto Hook Heart
+      Sail Heart Quest
+    AUTO SEA BEAST
+      Attack Rumbling Waters
+      Dodge Sea Beast Skills
+      Auto Sea Beast
+      SB/SHIP Farm Only Gun
+      SB/SHIP Use Melee
+      SB/SHIP Melee Skills
+      SB/SHIP Use Sword
+      SB/SHIP Sword Skills
+      SB/SHIP Use Fruit
+      SB/SHIP Fruit Skills
+      SB/SHIP Use Gun
+      SB/SHIP Gun Skills
+    DOJO TRAINER, UZOTH, DRACO RACE
+      Auto Draco Race
+      Auto Draco Race V2 & V3
+      Auto Draco Trial V4 [Talk To Npc First]
+      Auto Dojo Belts (DragonTalon Mas Must >500)
+      Auto Dragon Talon V3
+      Auto Upgrade Gear
+      Tween To Trial End
+    PREHISTORIC
+ISLAND
+      Auto Sail Sea
+      Stop If Prehistoric Island
+      Auto Start Prehistoric
+      Auto Attack Golem
+      Kill Aura
+      Auto Patch Volcano
+      Auto Collect Dragon Egg
+      Auto Collect Dinosaur Bone
+      Auto Reset After Prehistoric (10s)
+      Auto Dragon Hunt [Equip Canon In Tree Quest]
+      Dragon Hunt Hop If Tree Quest
+      Auto Collect Blaze Ember
+      Auto Craft Volcanic Magnet
+      Crafting
+      Volcanic Magnet
+      Dragonheart
+      Dragonstorm
+      T-Rex Skull
+      Dino Hood
+      Tween To Draco Trial Door
+    AUTO SHARK ANCHOR
+    AUTO SANGUINE ART
+    AUTO BEAST HUNTER
+    AUTO LEVIATHAN CROWN
+    AUTO LEVIATHAN SHIELD
+  PLAYERS
+    YOURSELF
+      Invisible [Desync]
+      Inf Energy
+      Inf Geppo
+      Inf Soru
+      Inf Dash + Bhop
+      Inf Mink's Ability
+      Walk On Water
+      No Zoom Limit
+      Fly Tool
+      Disable Weather
+      Set Speed
+      Change Speed
+      Set Jump
+      Change Jump
+      Change Buso Stage
+      Change Ken Range
+    PVP
+      Auto Dodge All Skills
+      Expand Hitbox
+      Select Aimbot Type : Nearest Mouse
+      Nearest Mouse
+      Nearest You
+      Selected Player
+      Aimbot FOV
+      Aimbot Distance
+      Enable Aimbot
+      Show Aimbot FOV
+      Insta Aim
+      Void Insta Kill
+      Select Player : None
+      balazs2014
+      Japan_3255
+      maooooooo6776
+      Naaaaaaaakinoko
+      anik1234570
+      dandysWorld_fan67678
+      point123759
+      Nguyengiahung_58
+      Bring Player
+      Electric Claw
+      Spikey Trident
+      Refresh Player
+      Get Player Hunter Quest
+      Get Player Wanted Quest
+      Auto Kill Player
+      Insta Kill Player
+      Follow Player
+      Aim Camera Player
+      Spectate Player
+    Combo Macro
+      Combo Macro Input
+      Load Combo Macro
+      Save Combo Macro
+      Record Combo Macro [Keyboard Needed]
+      Select Saved Macro : None
+      Refresh Macro List
+      Delete Selected Macro
+      Load Selected Macro
+  MISC
+    DEBUG
+      Enable Debug UI
+      Show Fruit Spawn Info
+      Show Bosses Key Info
+      Show Elite Boss Info
+      Show Mirage Island Info
+      Show Kitsune Island Info
+      Show Frozen Dimension Info
+      Show Prehistoric Island Info
+      Show Cake Prince Mobs
+      Current Moon: Normal Moon
+      Next 🌕: 3~4 Night (36~48 Minutes)
+      Show Script Status
+      Show Fps & Ping
+      Show Server Up Time
+      Show Time Played
+      Show Fruit Spawn Time
+      Show Sword Dealer Spawn Time
+      Show Fist of Darkness/God's Chalice Spawn Time
+      Show Key Expire Time
+      Show Normal Stock Refresh
+      Show Mirage Stock Refresh
+      Show Moon Info
+    SHOP
+      Melee Shop
+      Black Leg
+      Electro
+      Fishman Karate
+      Dragon Claw
+      Superhuman
+      DeathStep
+      Sharkman
+      Electric Claw
+      Dragon Talon
+      Godhuman
+      Sanguine Art
+      Divine Art
+      Scroll Shop
+      Common Scroll
+      Rare Scroll
+      Legendary Scroll
+      Mythical Scroll
+      Enchant Npc
+      Haki Shop
+      Sword Shop
+      Katana
+      Cutlass
+      Dual Katana
+      Iron Mace
+      Triple Katana
+      Dual-Headed Blade
+      Soul Cane
+      Bisento
+      Midnight Blade
+      Gun Shop
+      Slingshot
+      Musket
+      Flintlock
+      Dual Flintlock
+      Refined Slingshot
+      Cannon
+      Kabucha
+      Bizarre Rifle
+      Auto Buy True Triple Katana
+      Auto Buy Legendary Swords
+      Auto Buy Kabucha
+      Auto Buy Haki Color
+      Only Buy Legend Color
+      Auto Buy All Ectoplasm Items
+      Auto Buy All Beli Items
+      Auto Buy All Haki
+      Accessory Shop
+      Swordsman Hat
+      Black Cape
+      Tomoe Ring
+      Ghoul Mask
+      Ectoplasm Shop
+      Midnight Blade
+      Ghoul Mask
+      Bizarre Rifle
+      Fragments Shop
+      Reset Stats
+      Reroll Race
+      Race Shop
+      Cyborg
+    BONES SHOP
+      Random Surprise
+      Auto Random Surprise
+      Auto Pray
+      Auto Try Luck
+    ESP
+      Esp Barista Cousin
+      Esp Legendary Sword Dealer
+      Esp Berry
+      Esp Fruits
+      Esp Chests
+      Esp Islands
+      Esp Flowers
+      Esp Sea Beast
+      Esp Mirage Chests
+      Esp Mirage Fruit Dealear
+      Esp Mirage Fruit Dealear Spawn Locations
+      Esp Players
+      Enable Sense [Players ESP V2]
+      Sense ESP HealthBar
+      Sense ESP HealthText
+      Sense ESP Box
+      Sense ESP Box3D
+      Sense ESP Name
+      Sense ESP Distance
+      Sense ESP Weapon
+      Sense ESP Tracer
+      Sense ESP ScreenArrow
+      Toggle Radar UI
+    TELEPORT
+      Select NPC : None
+      Set Home Point
+      Colosseum Quest Giver
+      Sky Adventurer
+      Jail Keeper
+      Rich Man
+      Experienced Captain
+      Blacksmith
+      Angler
+      Bandit Quest Giver
+      Sword Dealer of the East
+      Blox Fruit Gacha
+      Parlus
+      Military Detective
+      Sky Quest Giver 2
+      Luxury Boat Dealer
+      Love Letter 3
+      Desert Adventurer
+      Aura Editor
+      Boat Dealer
+      Sword Dealer of the West
+      Fisherman
+      Pirate Adventurer
+      Advanced Marines Boat Dealer
+      Freezeburg Quest Giver
+      Dragon Talon Sage
+      Water Kung-fu Teacher
+      The Mayor
+      Head Jailer
+      Marine
+      Ability Teacher
+      Remove Blox Fruit
+      Robotmega
+      Villager
+      Adventurer
+      Weapon Dealer
+      Master Sword Dealer
+      Love Letter 1
+      Mad Scientist
+      Love Letter 2
+      Blox Fruit Dealer
+      Sick Man
+      Marine Recruiter
+      Pirate Recruiter
+      Marines Boat Dealer
+      Dark Step Teacher
+      King Neptune
+      Instinct Teacher
+      Marine Leader
+      Sword Dealer
+      Advanced Weapon Dealer
+      Living Skeleton
+      Refresh NPC
+      Tween To NPC
+      Select NPC Talk : None
+      ElectroTeacher - Mad Scientist
+      Manager - Manager
+      LuxuryBoatDealer - Luxury Boat Dealer
+      FishmanQuest - Quest
+      HalloweenGachaDealer - Haunted Gacha Dealer
+      StartValentinesDelivery - Valentines Delivery
+      Xmas4 - Cousin Remastered
+      LoveLetter2 - Love Letter
+      Customer - Customer
+      TitlesSpecialist - Titles Specialist (Axiore)
+      FamousPirate - Crew Captain
+      Exploiter - EXPLOITS DETECTED.
+      FruitRemover - Blox Fruit Remover
+      Barista - Barista
+      Area2Quest - Quest
+      EnhancementEditor - mygame43
+      Xmas1 - Magic Elf
+      SwordDealer3 - Sword Dealer of the East
+      Ectoplasm2 - El Perro
+      SwordDealer4 - Master Sword Dealer
+      RandomFruitSeller - Zioles
+      BanditQuest1 - Quest
+      MagmaQuest - Quest
+      EatFruit - Blox Fruit
+      BoatDealer - Boat Dealer
+      PrisonersThanks - Prisoners
+      EctoplasmChecker - Guashiem
+      BlueMoonShrinePray - Kitsune Shrine
+      LeviathanGate - Frozen Watcher
+      JoinPirates - Pirate Recruiter
+      MysteriousScientist - Mysterious Scientist
+      Lunoven - Lunoven
+      ReforgeNPC - Trinket Refiner
+      AwakeningsExpert - Awakenings Expert
+      Blacksmith - Blacksmith
+      SealedKing - Sealed King
+      Plokster - Plokster
+      Butler - Butler
+      ThunderGod - Thunder God
+      Trevor - Trevor
+      SickMan - Sick Man
+      Xmas3 - Santa Claws
+      Usoapp - The Strongest God
+      GodhumanTeacher - Ancient Monk
+      CryptMaster - Crypt Master
+      FishmanKarateTeacher - Water Kung-fu Teacher
+      CompleteValentinesDeliver - Valentines Delivery
+      Scroll - Dragon Talon Sage
+      RaceV4Upgrader - Red Head Essence
+      SubmergedQuest3 - Quest
+      ValentinesGachaDealer - Valentines Gacha Dealer
+      FailValentinesDelivery - Valentines Delivery
+      TravelZou - Mr. Captain
+      CakeSpawner - drip_mama
+      MasterOfEnhancement - Barista Cousin
+      DoghouseSpike - Wenlock
+      Flashback - erin
+      RedRecruiter - Red Army Recruiter
+      Area1Quest - Quest
+      GhoulGiver - Experimic
+      MartialArtsMaster - Martial Arts Master
+      SkyExp1Quest - Quest
+      HolidayGiftToolActivated - Gift
+      DracoStatue - Statue
+      DojoHiddenRoom - 
+      PartyShop - Valentine Shop
+      Bartilo - Bartilo
+      KenTeacher - Instinct Teacher
+      SubmergedQuest2 - Quest
+      SubmergedQuest1 - Quest
+      KilledSpringBoss - Jeremy
+      FoodToolActivated - Food
+      DragonHunter - Dragon Hunter
+      SharkmanTeacher - Sharkman Teacher
+      ChocQuest2 - Quest
+      DeathStepTeacher - Phoeyu, the Reformed
+      CelebrationGacha - Party Gacha
+      BeastHunter - Beast Hunter
+      CDKDoor - ???
+      DragonTamer - Dragon Tamer
+      SkyQuest - Quest
+      TalonTeacher - Uzoth
+      TikiQuest2 - Quest
+      MysteriousMan - Mysterious Man
+      CyborgTrainer - 
+      NutsIslandQuest - Quest
+      ChocQuest1 - Quest
+      CakeQuest2 - Quest
+      CandyQuest1 - Quest
+      IceCreamIslandQuest - Quest
+      Alchemist - Alchemist
+      MarineTreeIsland - Quest
+      DeepForestIsland3 - Quest
+      SharkHunter - Shark Hunter
+      WeaponDealer - Weapon Dealer
+      DeepForestIsland2 - Quest
+      Ectoplasm3 - El Admin
+      Detective - Military Detective
+      HornedMan - Horned Man
+      LegendarySwordDealer - Legendary Sword Dealer
+      SnowQuest - Quest
+      SwordDealer2 - Sword Dealer of the West
+      DeepForestIsland - Quest
+      PotionToolActivated - Potion
+      Spy - Spy
+      HauntedQuest1 - Quest
+      FruitShop - Blox Fruit Dealer
+      VenomCrewQuest - Quest
+      TempleTeleportBack - Mysterious Force
+      Xmas2 - Greedy Elf
+      ZombieQuest - Quest
+      PlayerHunter - Player Hunter
+      rip_indra - rip_indra
+      FrostQuest - Quest
+      ShipQuest2 - Quest
+      ShipQuest1 - Quest
+      Robotmega - robloxmecha
+      ObservationV2 - Hungry Man
+      Gravestone - Gravestone
+      JoinMarines - Marine Recruiter
+      FireSideQuest - Quest
+      SnowMountainQuest - Quest
+      ShipwrightNPC - Shipwright Teacher
+      TravelDressrosa - Experienced Captain
+      MarineQuest - Quest
+      EliteHunter - Elite Hunter
+      IceSideQuest - Quest
+      SkyExp2Quest - Quest
+      MarineQuest2 - Quest
+      MarineQuest3 - Quest
+      SwordDealer5 - Hidden Sword Dealer
+      RipRecruiter - Rip Family Recruiter
+      KilledIndraBoss - Mental Message
+      FountainQuest - Quest
+      ImpelQuest - Quest
+      ClockRoomExit - ???
+      PrisonerQuest - Quest
+      ColosseumQuest - Quest
+      ForgottenQuest - Quest
+      JungleQuest - Quest
+      BuggyQuest1 - Quest
+      HauntedQuest2 - Quest
+      Indra - xindra_tentashun
+      Hasan - Hasan
+      RichMan - Rich Man
+      Divine - Divine
+      BlueMoonShrine - Kitsune Shrine
+      LoveLetter3 - Love Letter
+      MergeNPC - Trinket Expert
+      BoatDealerMarines2 - Advanced Boat Dealer
+      AdvancedWeaponDealer - Advanced Weapons Dealer
+      PreviousHero - Previous Hero
+      HelmsmanNPC - Helmsman NPC
+      DojoTrainer - Dojo Trainer
+      LoveLetter1 - Love Letter
+      Ectoplasm1 - El Rodolfo
+      PiratePortQuest - Quest
+      Parlus - Parlus
+      ArenaTrainer - Arena Trainer
+      TempleTeleport - Mysterious Force
+      DragonCrewQuest - Quest
+      Halloween1 - Death King
+      DesertQuest - Quest
+      SecretSanta - Secret Santa
+      KilledIceBoss - Ice Admiral
+      Cupid_ValentineDailyQuests - Valentine Daily Quests
+      BountyHonorExpert - Bounty/Honor Expert
+      SwordDealer1 - Sword Dealer
+      SickScientist - Sick Scientist
+      SkeletonMachine - Weird Machine
+      CakeScientist - Cake Scientist
+      HalloweenWitch - Witch
+      Nerd - Nerd
+      SweetChalice - Sweet Crafter
+      BlackLegTeacher - Dark Step Teacher
+      DragonWizard - Dragon Wizard
+      CitizenThanks - Citizen
+      RedHead - King Red Head
+      KilledCitizenBoss - ...
+      HakiTeacher - Ability Teacher
+      FruitShop2 - Advanced Fruit Dealer
+      FossilExpert - Fossil Expert
+      tort - tort
+      SanguineTeacher - Shafi
+      GhostPuzzle - Ghost
+      junior - arlthmetic A.K.A. Junior J. Five
+      CakeQuest1 - Quest
+      Yoshi - Yoshi
+      TikiQuest3 - Quest
+      TikiQuest1 - Quest
+      TravelMain - Sea Captain
+      DracoV4Upgrader - Red Essence
+      BoatDealerMarines - Boat Dealer
+      layandikit12 - layandikit12
+      Tacomura - Tacomura
+      Cyborg - Cyborg
+      Sabi - Sabi
+      Wenlocktoad - arowe
+      MysteriousEntity - Mysterious Entity
+      Citizen - Citizen
+      SpawnPoint - Set Home Point
+      Talk to Selected NPC
+      Select Island : None
+      Jungle
+      Pirate Village
+      Frozen Village
+      Whirlpool
+      Pirate Starter
+      Middle Town
+      Marine Starter
+      Desert
+      Colosseum
+      Fountain City
+      Magma Village
+      Underwater City
+      Skylands
+      Prison
+      Marine Fortress
+      Refresh Islands
+      Island Tp X
+      Island Tp Y
+      Island Tp Z
+      Tween To Island
+    TROLL
+      Select Player Boat : None
+      anik1234570
+      Refresh Player Boat
+      Bring Player Boat
+      Chess Game
+      Get Suggest
+      Fix Suggest
+      Fix Light
+      💀 Hell Features 😈
+      Decrease All Beli
+      Get Ban/Reset
+      Get Ban (1D)
+    VISUAL
+      Trial Update 🔥
+      Divine Art
+      Divine Art V2
+      Admin Tools
+      Triple Dark Blade
+      Super Fruit Box
+      Fruit Box
+      Mystery Fruit Box
+      Season 2 Fruit Box 1
+      Season 2 Fruit Box 2
+      Season 2 Fruit Box 3
+      Season 2 Fruit Box 4
+      Season 2 Fruit Box 5
+      Human V4
+      Skypiea V4
+      Cyborg V4
+      Ghoul V4
+      Fishman V4
+      Mink V4
+      Effects Changer
+      Gojo [Flame]
+      Darkblade [Saber]
+      Door [Portal]
+      FE Animation Changer
+      Dog Life
+      Oldschool
+      Stylish
+      adidas Community
+      Ninjaage
+      Cartoonyage
+      Bubblyage
+      Bold by e.l.f.
+      Zombie
+      Wicked Popular
+      Mageage
+      adidas Sports
+      Rthroage
+      Superhero
+      Vampire
+      Elderage
+      Levitation
+      Astronaut
+      adidas aura animation pack
+      Werewolf
+      Catwalk Glam by e.l.f.
+      No Boundaries by Walmart
+      Knightage
+      Pirateage
+      Amazon Unboxed
+      Glow Motion
+      Wicked "Dancing Through Life"
+      Pirate Animation Retargeting
+      Default Animation Retargeting
+      Hot Features 🔥
+      HoHo Island
+      Rain Fruit V2
+      Rain Gift
+      Fruit Gifts
+      Rain Fruit
+      Gacha Mod
+      Profile Showcase+
+      x9999 Everything V2
+      x9999 Everything
+      Tokyo Drift Car
+      Yelan Voice
+      Furina Voice [JP]
+      Florentino Voice
+      Gojo Voiceline
+      Golden Gatling Gun
+      Triple Darkblade
+      Admin CMDX
+      acsu's sword
+      Haosoku Haki
+      Triple Whiteblade
+      Shimeji :D
+      Hungary
+      HongKong
+      Gakupo
+      Monika
+      Philippin
+      Liechtenstein
+      Spider
+      GermanyAndItaly
+      Sayori
+      Prussia
+      AmongUs
+      Momiji
+      Natsuki
+      R6 Mods
+      R15 to R6
+      Megumin Staff
+      Smug Dance
+      Nebula's Lost Hope V2
+      Jotaro
+      Techno Fairy
+      Purple Heart Sword
+      Xester
+      KrystalDance V2
+      GATTAI ZAMASU
+      VEREUS
+      Master of Elements
+      Nebula Staff
+      Golden Clock
+      DARK Stand
+      dahnoob's baseball bat
+      WYD Form
+    FRUITS SKIN & UPDATE
+      Mod Skins (EAST)
+      Dragon Skins (EAST)
+      Eclipse
+      Frostbite
+      Orange
+      Violet Night
+      Blood Moon
+      Phoenix Sky
+      Yellow
+      Purple
+      Emerald
+      Halo Color
+      Eyes Flame Color
+      Hands Flame Color
+      Mod Skins (PAIN)
+      Pain Skins
+      Frustration
+      Torment
+      Celestial
+      Super Spirit
+      Sadness
+      Mod Skins (LIGHTNING)
+      Lightning Skins
+      Purple
+      Yellow
+      Mod Skins (PORTAL)
+      Portal Skins
+      Orange
+      Divine
+      Mod Skins (DIAMOND)
+      Diamond Skins
+      Diamond
+      Rose Quartz
+      Emerald
+      Update Fruit (HIDDEN ABILITIES)
+      Select Fruit To Update
+      Gravity Fruit
+      Eagle Fruit
+      Lightning Fruit
+      Pain Fruit
+      Control Fruit
+      Mod Skins (WEST)
+      Dragon Skins (WEST)
+      Emerald
+      Phoenix Sky
+      Eclipse
+      Blood Moon
+      Yellow
+      Violet Night
+      Frostbite
+      Purple
+      Orange
+      Mod Skins (EAGLE)
+      Eagle Skins
+      Blue Sky
+      Requiem
+      Golden Moss
+      Orange Creamsicle
+      Matrix
+      Velvet
+      Parrot
+      Glacier
+      Falcon
+      Mod Skins (BOMB)
+      Bomb Skins
+      Thermite
+      Nuclear
+      Celebration
+      Mod Skins (TIGER)
+      Tiger Skins
+      Werewolf
+      🐯 Animation ➡ 🐺
+      🐺 Animation ➡ 🐯
+      Mod Skins (KITSUNE)
+      Kyukon Skins
+      Galaxy <Empyrean (Kitsune)>
+      Crimson <Empyrean (Kitsune)>
+      Mod Skins (YETI)
+      Yeti Skins
+      Fiend Yeti
+      ☃️ Animation ➡ 👹
+      👹 Animation ➡ ☃️
+    CREATION FRUIT
+      Select Saved Macro : None
+      Build Macro Input
+      Macro Save Name
+      Creation Functions
+      Mod Fruit (Build+)
+      Delete Objects
+      Copy Objects
+      Macro Functions
+      Run Build
+      Run Build [Q+]
+      Refresh Macro
+      Save Macro
+      Delete Macro
+      Copy Other Creation Builds
+      Change Build Position
+      Change Build Pos X
+      Change Build Pos Y
+      Change Build Pos Z
+    CONTROL FRUIT
+      Control M1 No CD
+      Auto Tp Room
+      Op Gamma Blade
+    TITLES MOD
+      Custom Title Name
+      Custom Title Desc
+      Custom Title Color
+      Add Custom Title
+      Unlock All Titles
+      Press Button Above Before Add A Custom Title
+  SETTING
+    WEBHOOK
+      Track Your Accounts
+      Copy Website Link
+      Put Your Track Script Here
+      Account Tracking
+      Put Your Webhook Here
+      Note: Add Use External Emoji For @everyone
+      Webhook Delay (min)
+      Test Webhook
+      Send Webhook
+      Send Webhook Fruit Storage Change
+      Send Webhook New Fish
+    GAME SETTING
+      Make Normal Fruit Seller to 🏝️Mirage Island's Fruit Seller
+      Invisicam
+      Free Camera
+      RTX Shader
+      Open GUI
+      Fruit Dealer
+      Mirage Dealer
+      Haki Colors
+      Awakening Toggler
+      Titles
+      Bartender
+      Admin Panel
+      Game Misc
+      Redeem All Codes
+      Show Items
+      Show Acc Link
+      Change Team
+      Pirate
+      Marine
+    SCRIPT SETTING
+      Save Script Setting
+      Reset Script Setting
+      Export To HoHoCustomConfig
+      UI Background ID/Link
+      UI Background Type : Image
+      UI Background Transparency
+      Enable UI Background
+      Premium Theme V4 : Purple
+      Purple
+      Colorfull
+      Sakura
+      Darkblue
+      Turquoise
+      Yellow
+      Orange
+      Script Language : English
+      English
+      Chinese
+      Japanese
+      Russian
+      German
+      Vietnamese
+      Ukrainian
+      Italian
+      French
+      Hungarian
+      Portuguese
+      Spanish
+      Turkish
+      Slovak
+      Stop Tween Button
+      Auto Execute HoHo
+      Save Ui Position
+      Print Error
+      HoHo Cursor
+      HoHo UI Effects
+      HoHo UI No Animations
+      HoHo Topbar
+      HoHo UI : HoHo V4
+      HoHo V4
+      HoHo V1
+      HoHo V2
+      HoHo V2.5
+      HoHo V3
+      Flux UI
+      Fluent (Wazure/Banana)
+      Vin Hub
+      Wally UI V3
+      Sea Hub
+      Anime Voice
+      Hide User Info
+      Notify Theme Pack : Anime Girls Pack
+      Blox Fruit Pack
+      Anime Girls Pack
+      Meme Pack
+      acsu's Special Pack 2
+      Dream Pack
+      acsu's Special Pack
+      Anime Boys Pack
+      Cat Pack
+      Furry Pack
+      Horror Pack
+      Notify Test
+    H0H0 SERVERS
+      Join Server Job Id
+      Join Server Hоhо Code
+      Copy This Server Job Id
+      Change Sea
+      First Sea
+      Second Sea
+      Third Sea
+      Dungeon
+      Change Server
+      Rejoin
+      Hop Server
+      Low Server
+      4H Server
