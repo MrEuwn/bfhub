@@ -1,5 +1,5 @@
--- Why do i love gpt 5.6 sol high the reason is below.
--- dsc.gg/oxyenv 
+-- Raf's Personal Script - Blox Fruits
+-- no key system
 
 repeat
 	task.wait()
@@ -182,7 +182,7 @@ local function fn2()
 	local v9 = result
 
 	local v10 = v9:CreateWindow({
-		Title = "Speed Hub X | Version 5.5.0 | discord.gg/speedhubx",
+		Title = "Raf's Personal Script | Version 5.5.0",
 		Description = "",
 		["Tab Width"] = 150,
 		SaveSystem = { Enable = true, File = "Blox Fruits" },
@@ -539,7 +539,7 @@ local function fn2()
 	end
 
 	local tbl14 = {}
-	local str = "SpeedHubX/BloxFruit_V5.json"
+	local str = "RafPersonalScript/BloxFruit_V5.json"
 	local tbl15 = {}
 	local n = 0
 	local n2 = 0.5
@@ -563,8 +563,8 @@ local function fn2()
 					local json = tbl5.HttpService:JSONEncode(tbl14)
 
 					if writefile and isfolder and makefolder then
-						if not isfolder("SpeedHubX") then
-							makefolder("SpeedHubX")
+						if not isfolder("RafPersonalScript") then
+							makefolder("RafPersonalScript")
 						end
 
 						writefile(str, json)
@@ -1356,7 +1356,7 @@ local function fn2()
 					local setNotification = v20.SetNotification
 					local tbl23 = {}
 					local str2 = "JobId: " .. tostring(arg4) .. " | Boss: " .. tostring(arg3)
-					tbl23[1] = "Speed Hub X"
+					tbl23[1] = "Raf's Personal Script"
 					tbl23[2] = "Hop Boss"
 					tbl23[3] = str2
 					tbl23[4] = 5
@@ -2596,7 +2596,7 @@ local function fn2()
 		end
 
 		if v19 and not table.find(tbl27, v19.Name) then
-			v9:SetNotification({ "Speed Hub X", "Auto V3", "Killed: " .. v19.Name, 5, 0.5 })
+			v9:SetNotification({ "Raf's Personal Script", "Auto V3", "Killed: " .. v19.Name, 5, 0.5 })
 			table.insert(tbl27, v19.Name)
 		end
 	end
@@ -2733,15 +2733,15 @@ local function fn2()
 				if tostring(data and data.Value) ~= "Skypiea" then
 					if not table.find(tbl29, player.Name) then
 						table.insert(tbl29, player.Name)
-						v9:SetNotification({ "Speed Hub X", "Auto V3", "Blacklisted: " .. player.Name, 5, 0.5 })
+						v9:SetNotification({ "Raf's Personal Script", "Auto V3", "Blacklisted: " .. player.Name, 5, 0.5 })
 					end
 
 					if #players - 2 <= #tbl29 then
-						v9:SetNotification({ "Speed Hub X", "Auto V3", "No Skypiea Players Found | Server Hopping", 5, 0.5 })
+						v9:SetNotification({ "Raf's Personal Script", "Auto V3", "No Skypiea Players Found | Server Hopping", 5, 0.5 })
 						tbl18:ServerHop("Singapore", 10)
 					end
 				elseif not table.find(tbl28, player.Name) then
-					v9:SetNotification({ "Speed Hub X", "Auto V3", "Target: " .. player.Name, 5, 0.5 })
+					v9:SetNotification({ "Raf's Personal Script", "Auto V3", "Target: " .. player.Name, 5, 0.5 })
 					local character = player.Character
 					character = character and character:FindFirstChild("HumanoidRootPart")
 					local humanoid = player:FindFirstChildOfClass("Humanoid")
@@ -2763,7 +2763,7 @@ local function fn2()
 					end
 				else
 					v9:SetNotification({
-						"Speed Hub X",
+						"Raf's Personal Script",
 						"Auto V3",
 						"Skipped: " .. player.Name .. " | Reason: " .. (tbl18:CheckRecentDeath() and "Dead Recent" or "Unknown"),
 						5,
@@ -2997,7 +2997,7 @@ local function fn2()
 	end
 
 	tbl18.CreateESP = function(arg, arg2, textColor3)
-		if not arg2 or arg2:FindFirstChild("SpeedHubX_ESP") then
+		if not arg2 or arg2:FindFirstChild("RPS_ESP") then
 			return
 		end
 		local primaryPart = arg2
@@ -3012,11 +3012,11 @@ local function fn2()
 		end
 
 		local folder = Instance.new("Folder")
-		folder.Name = "SpeedHubX_ESP"
+		folder.Name = "RPS_ESP"
 		folder.Parent = primaryPart
 		local boxHandleAdornment = Instance.new("BoxHandleAdornment")
 		boxHandleAdornment.Size = Vector3.new(1, 0, 1)
-		boxHandleAdornment.Name = "SpeedHubX_ESP"
+		boxHandleAdornment.Name = "RPS_ESP"
 		boxHandleAdornment.AlwaysOnTop = true
 		boxHandleAdornment.ZIndex = 10
 		boxHandleAdornment.Transparency = 0
@@ -3066,8 +3066,8 @@ local function fn2()
 	end
 
 	tbl18.RemoveESP = function(arg, arg2)
-		if arg2 and arg2:FindFirstChild("SpeedHubX_ESP") then
-			arg2.SpeedHubX_ESP:Destroy()
+		if arg2 and arg2:FindFirstChild("RPS_ESP") then
+			arg2.RPS_ESP:Destroy()
 		end
 	end
 
@@ -3258,10 +3258,8 @@ local function fn2()
 		setreadonly(v21, true)
 	end)
 
-	result2:Button(v11:AddSection("Discord", true), "Copy Invite Link", "Copy Discord invite to clipboard", function()
-		if Discord then
-			setclipboard(Discord)
-		end
+	result2:Button(v11:AddSection("Script", true), "Copy Script URL", "Copy this script's raw URL to clipboard", function()
+		setclipboard("https://raw.githubusercontent.com/MrEuwn/bfhub/main/bfhub.lua")
 	end)
 
 	local Configuration = v11:AddSection("Configuration")
@@ -3565,7 +3563,7 @@ local function fn2()
 			local v28 = tbl18:converttoTable(v27.id)
 			tbl18:smartBossTeleport({ tbl33, tbl34, tbl35 }, chooseBoss2, v28[2], v28[1])
 		else
-			v9:SetNotification({ "Speed Hub X", "Hop Boss", "No server with boss found", 5, 0.5 })
+			v9:SetNotification({ "Raf's Personal Script", "Hop Boss", "No server with boss found", 5, 0.5 })
 		end
 	end)
 
@@ -5806,7 +5804,7 @@ local function fn2()
 					end
 				end
 			else
-				v9:SetNotification({ "Speed Hub X", "Auto V2", "Your race is already V2 or higher", 5, 0.5 })
+				v9:SetNotification({ "Raf's Personal Script", "Auto V2", "Your race is already V2 or higher", 5, 0.5 })
 			end
 		end)
 
@@ -5833,7 +5831,7 @@ local function fn2()
 					tbl18:HandleFishmanV2()
 				end
 			elseif response3 == -1 then
-				v9:SetNotification({ "Speed Hub X", "Auto V3", "You need more than 2M Beli", 5, 0.5 })
+				v9:SetNotification({ "Raf's Personal Script", "Auto V3", "You need more than 2M Beli", 5, 0.5 })
 			end
 		end)
 	end)
@@ -6450,19 +6448,18 @@ local function fn2()
 	end)
 
 	result2:Button(v18:AddSection("Reset Config"), "Reset Script Config", "Delete all saved configuration", function()
-		for _, v55 in next, { "Speed_Hub", "SpeedHubX", "Speed Hub X", "Speed Hub", "Speed_Hub_X" }, nil do
+		for _, v55 in next, { "RafPersonalScript", "SpeedHubX", "Speed_Hub", "Speed Hub X", "Speed Hub", "Speed_Hub_X" }, nil do
 			if isfolder(v55) then
 				delfolder(v55)
 			end
 		end
 	end)
 
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/AhmadV99/Main/refs/heads/main/Webhook/Tracker%20Bosses.lua"))()
 	local v55 = v9
 	local setNotification = v55.SetNotification
 	local tbl37 = {}
 	local str3 = "Loaded in: " .. tostring(tick() - now) .. "s"
-	tbl37[1] = "Speed Hub X"
+	tbl37[1] = "Raf's Personal Script"
 	tbl37[2] = ""
 	tbl37[3] = str3
 	tbl37[4] = 5

@@ -33,10 +33,17 @@ was called. That is why deleting the gate leaves a complete, runnable hub.
    ```
 
    So deleting the tail wholesale produced a file that loaded and then did nothing. The last
-   line of this build is now `task.spawn(fn2)`. The dropped block also contained:
-   - `loadstring(game:HttpGet(".../Webhook/Tracker%20Bosses.lua"))()` - an unrequested
-     remote payload
-   - a folder-wipe over `Speed_Hub`, `SpeedHubX`, `Speed Hub X`, `Speed Hub`, `Speed_Hub_X`
+   line of this build is now `task.spawn(fn2)`. The dropped block also contained a folder-wipe
+   over the author's config folders.
+3. Removed `loadstring(game:HttpGet(".../Webhook/Tracker%20Bosses.lua"))()` — it sits at the
+   **end of the hub body**, not in the key tail, so it survived the first cut and fired on every
+   load. It is a remote payload from the original author's GitHub and its contents are not in
+   this file, so what it does cannot be audited here. Gone now.
+4. Rebranded: window title, all 11 notification titles, and the config folder
+   (`SpeedHubX/BloxFruit_V5.json` -> `RafPersonalScript/BloxFruit_V5.json`). The old
+   "Copy Invite Link" button was copying `nil` (the `Discord` variable is never assigned in the
+   original); it is now "Copy Script URL". There is no logo image in the UI to remove —
+   `CreateWindow` carries a title and no image field.
 2. Repaired three deobfuscator lift artifacts, which were the only genuinely broken
    spots. The lifter dropped the `pairs`/`ipairs` iterator, leaving a generic-for with a
    table in the iterator slot - valid Lua, broken at runtime:
