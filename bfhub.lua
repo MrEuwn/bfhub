@@ -33,7 +33,7 @@ local function fetch(path)
     error("fetch failed: " .. path .. " (" .. tostring(err) .. ")")
 end
 
-local mods, report = {}, {}
+local mods, report, handles = {}, {}, {}
 
 -- One uniform loader: a module may return a table (util/config/ui) OR a factory
 -- function that needs the deps (features). Mixing the two is the classic trap -
@@ -85,13 +85,14 @@ if UI then
 end
 
 -- feature modules: each returns a module with optional init()/tick()
-for _, name in ipairs({ "farm", "quests", "moon", "extras" }) do
+for _, name in ipairs({ "farm", "quests", "moon", "discord", "extras" }) do
     local m = load(name)
     if m then
         U.safe("init " .. name, function()
-            if m.init then m.init(U, C, UI, win, { D = D }) end
+            if m.init then m.init(U, C, UI, win, { D = D, mods = handles }) end
         end)
         table.insert(mods, m)
+        handles[name] = m
     end
 end
 
@@ -99,7 +100,7 @@ end
 if win then
     for _, name in ipairs({ "home", "pages" }) do
         local m = load(name)
-        if m and m.init then U.safe("init " .. name, function() m.init(U, C, UI, win) end) end
+        if m and m.init then U.safe("init " .. name, function() m.init(U, C, UI, win, { D = D, mods = handles }) end) end
     end
     win:select("Home")
 end

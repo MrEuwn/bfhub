@@ -28,7 +28,9 @@ src/ui.lua          lazy minimalist GUI
 src/farm.lua        Auto Farm Level / Nearest / Boss / Mastery
 src/quests.lua      the named farmers, unlocks, spawner remotes, material farm
 src/moon.lua        moon phase + Mirage detection, auto hop, shared jobIds
+src/discord.lua     read jobIds out of a Discord channel (RODISCORD HOP FARM style)
 src/moon.lua        moon phase + Mirage detection, auto hop, shared jobIds
+src/discord.lua     read jobIds out of a Discord channel (RODISCORD HOP FARM style)
 src/extras.lua      kill aura, skills, ESP, low-end, anti-AFK, walk-on-water
 src/pages.lua       11 tabs
 src/home.lua        Home status + debug panel
@@ -46,8 +48,8 @@ harness.lua         offline contract test (run with luau.exe)
 | Quests | Ken V2, Musketeer Hat, Saber, Rainbow Haki, Soul Guitar, Race V2, Second Sea, Third Sea, Elite Hunter + hops, race reroll / refund |
 | Items | teleport to fruit, store fruits, chest tween/bypass, raid, chip, haki color, legendary sword, TTK, Bartilo, CDK |
 | Teleport | island dropdown from the live `Locations` registry, sea 1/2/3, server id + join |
-| Server | moon phase + Mirage readout, hop until Mirage, hop until full moon, hop limits, shared jobId url, post my jobId |
-| Server | moon phase + Mirage readout, hop until Mirage, hop until full moon, hop limits, shared jobId url, post my jobId |
+| Server | moon phase + Mirage readout, hop until Mirage, hop until full moon, hop limits, Discord channel reader, shared jobId url, post my jobId |
+| Server | moon phase + Mirage readout, hop until Mirage, hop until full moon, hop limits, Discord channel reader, shared jobId url, post my jobId |
 | Shop | 47 codes, 11 fighting styles, 9 swords, 7 guns, ghoul/cyborg race, random fruit |
 | Visual | ESP fruits/chests/flowers/islands/players, low-end, anti-AFK, walk on water, panic mode |
 | Misc | auto stats, check boost, webhook, about |
@@ -92,7 +94,23 @@ What this hub does instead:
    set. Empty servers are preferred (a fresh server has a fresh moon clock), then the
    least full one. The counter shows how many hops it cost, so the real hit rate is
    visible rather than promised.
-3. **Shared jobIds, the hubs' actual mechanism**: a URL of raw text containing jobIds
+3. **Discord channel reader** (the `RODISCORD HOP FARM` mechanism, automated): a bot
+   token + channel id typed into the UI at runtime, then
+   `GET https://discord.com/api/v10/channels/<id>/messages?limit=100` with
+   `Authorization: Bot <token>`, and the jobId is a UUID inside `content`. Needs
+   `VIEW_CHANNEL` + `READ_MESSAGE_HISTORY`; Message Content Intent is only for the
+   gateway, not REST. Requests go out from the device's IP, which is why this works from
+   an executor when `HttpService` from a Roblox game server gets 403.
+   Buttons: Test Token, Show JobIds Found, Hop To Newest jobId, Auto Hop To New jobIds
+   (polls and skips ids already used). Filter field matches words in the message, so
+   `mirage` only picks the Mirage posts.
+
+   **The token is typed at runtime and never written into the repo.** Treat it as a
+   password: a bot token can read every channel that bot can see, so use a bot on your
+   own private server, not a token someone shares, and rotate it if it leaks. Do not use
+   a user token (self-bot) - that breaks Discord's ToS and gets the account banned.
+
+4. **Shared jobIds, the no-Discord version**: a URL of raw text containing jobIds
    (a GitHub raw file or gist you keep, or a Discord channel export). It hops to the
    first one. `Post My jobId To Webhook` sends your own `jobId=` line to your Discord
    webhook when a moon or Mirage is up, so a second instance (or a friend) can pick it
@@ -126,11 +144,27 @@ What this hub does instead:
    set. Empty servers are preferred (a fresh server has a fresh moon clock), then the
    least full one. The counter shows how many hops it cost, so the real hit rate is
    visible rather than promised.
-3. **Shared jobIds, the hubs' actual mechanism**: a URL of raw text containing jobIds
+3. **Discord channel reader** (the `RODISCORD HOP FARM` mechanism, automated): a bot
+   token + channel id typed into the UI at runtime, then
+   `GET https://discord.com/api/v10/channels/<id>/messages?limit=100` with
+   `Authorization: Bot <token>`, and the jobId is a UUID inside `content`. Needs
+   `VIEW_CHANNEL` + `READ_MESSAGE_HISTORY`; Message Content Intent is only for the
+   gateway, not REST. Requests go out from the device's IP, which is why this works from
+   an executor when `HttpService` from a Roblox game server gets 403.
+   Buttons: Test Token, Show JobIds Found, Hop To Newest jobId, Auto Hop To New jobIds
+   (polls and skips ids already used). Filter field matches words in the message, so
+   `mirage` only picks the Mirage posts.
+
+   **The token is typed at runtime and never written into the repo.** Treat it as a
+   password: a bot token can read every channel that bot can see, so use a bot on your
+   own private server, not a token someone shares, and rotate it if it leaks. Do not use
+   a user token (self-bot) - that breaks Discord's ToS and gets the account banned.
+
+4. **Shared jobIds, the no-Discord version**: a URL of raw text containing jobIds
    (a GitHub raw file or gist you keep, or a Discord channel export). It hops to the
    first one. `Post My jobId To Webhook` sends your own `jobId=` line to your Discord
    webhook when a moon or Mirage is up, so a second instance (or a friend) can pick it
-   up - that is how a private channel of finds gets built without a server.
+   up - that is how a private channel of finds gets built without a bot.
 
 Public servers only, as asked: `servers/Public` never returns private servers, and
 nothing here touches the private-server endpoint.

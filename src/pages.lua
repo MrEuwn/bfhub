@@ -10,6 +10,7 @@ local U, C, UI, win, D
 function M.init(_U, _C, _UI, _w, deps)
     U, C, UI, win = _U, _C, _UI, _w
     D = deps and deps.D
+    if deps and deps.mods then M.bindDiscord(deps.mods.discord) end
 
     -- FARM ------------------------------------------------------------------
     win:tab("Farm", function(page)
@@ -228,6 +229,18 @@ function M.init(_U, _C, _UI, _w, deps)
         win:button(c, "Hop Once Now", function() M.hop() end)
         win:button(c, "Reset Counter", function() M.reset() U.notify("counter reset") end)
 
+        c = win:card(page, "Discord Channel")
+        win:label(c, "token stays in this session only - it is never written to the repo. use a BOT token, never a user token",
+            Color3.fromRGB(220, 170, 120))
+        win:textbox(c, "Bot Token", "DcToken", "paste at runtime")
+        win:textbox(c, "Channel ID", "DcChannel", "18-19 digit id")
+        win:textbox(c, "Filter (words in the message)", "DcFilter", "mirage")
+        win:button(c, "Test Token", function() M.dcTest() end)
+        win:button(c, "Show JobIds Found", function() M.dcList() end)
+        win:button(c, "Hop To Newest jobId", function() M.dcHop() end)
+        win:toggle(c, "Auto Hop To New jobIds", "DcAuto")
+        win:slider(c, "Poll Every (s)", "DcPoll", 5, 60, 5)
+
         c = win:card(page, "Shared jobIds")
         win:label(c, "same idea as the hubs' moon/mirage discord channels: hop to a jobId someone posted",
             Color3.fromRGB(150, 155, 170))
@@ -321,6 +334,13 @@ function M.redeemCodes()
     end
     U.notify(n .. " codes sent")
 end
+
+-- discord passthroughs (kept here so the UI does not need the module handle)
+local dc = nil
+function M.bindDiscord(m) dc = m end
+function M.dcTest() if dc then dc.me() end end
+function M.dcList() if dc then dc.test() end end
+function M.dcHop() if dc then dc.hopNewest() end end
 
 function M.teleportIsland()
     local w = workspace:FindFirstChild("_WorldOrigin")
