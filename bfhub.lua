@@ -1,30 +1,47 @@
 --[[
-  Raf's Personal Script - HoHo launcher.
+  Raf's Personal Script - HoHo Hub launcher (keyless build).
 
-  Runs HoHo Hub for Blox Fruits, keyless.
+  WHY NOT THE NEWEST BUILD:
+  HoHo's newest Blox Fruits build lives behind Luarmor (a server-side key
+  service). Its loader is:
+      HohoV2 main/ScriptLoad.lua
+        GameList[994732206] = "e4aedc7ccd2bacd83555baa884f3d4b1"  -- Blox Fruits
+        api = HttpGet("https://sdkapi-public.luarmor.net/library.lua")
+        api.script_id = <that id>
+        api.check_key(key)   -- must return KEY_VALID
+        api.load_script(...) -- THEN the payload is handed over
+  The payload is never in the GitHub repo and is not fetchable without a valid
+  key: requesting the loader URL directly returns an HTML page, and adding
+  ?key=NoKey returns "Unauthorized". That check is server-side, so it cannot be
+  patched from the client. Nobody can remove that key - it is not in the code.
 
-  Why this is keyless: HoHo's own loader
-  (acsu123/HOHO_H main/new_load.lua) has NO key system and NO ad gate. Audited -
-  it contains no getkey / luarmor / linkvertise / lootlabs / work.ink reference.
-  It matches game.GameId against a table and runs the script for that game. The
-  key+ad flow people complain about lives in a DIFFERENT loader
-  (acsu123/HohoV2 main/ScriptLoad.lua), which this does not use.
+  WHAT THIS RUNS:
+  HoHo's own free/keyless Blox Fruits builds, newest first. These carry no key
+  gate at all (verified: no luarmor / script_key / check_key anywhere):
+      1. Free/BloxFruitFreeV3.lua    2.17 MB  Luraph v14.2    2024-11-28  <- newest
+      2. Free/BloxFruitTEST_ONLY.lua 2.41 MB  Luraph v13.8.1  2024-01-20
+      3. main/HohoHub.lua            2.63 MB  Luraph v13.5.8  2022-10-18
+  They are obfuscated, so we run them as-is; we do not modify them.
 
-  Blox Fruits GameId is 994732206 -> HoHo runs main/HohoHub.lua
-  (Luraph v13.5.8 protected; we run it, we do not modify it).
+  Trade-off, stated plainly: the newest keyless build is from Nov 2024 and the
+  game is now v30.0.8, so some features may be broken. That is the cost of
+  skipping the key.
 
-  Paste one line in Delta:
+  Paste one line in Delta (while Blox Fruits is open):
     loadstring(game:HttpGet("https://raw.githubusercontent.com/MrEuwn/bfhub/main/bfhub.lua"))()
 
-  In game: press RightCtrl to show/hide the HoHo UI. A "HoHo" button also appears
-  on screen. This is a cheat - use an alt account.
+  Press RightCtrl (or the on-screen button) to show/hide the UI.
+  This is a cheat - use an alt account.
 ]]
 
-local HOHO_LOADER = "https://raw.githubusercontent.com/acsu123/HOHO_H/main/new_load.lua"
-local HOHO_BLOX   = "https://raw.githubusercontent.com/acsu123/HOHO_H/main/HohoHub.lua"
+local BUILDS = {
+    "https://raw.githubusercontent.com/acsu123/HohoV2/Free/BloxFruitFreeV3.lua",     -- newest keyless
+    "https://raw.githubusercontent.com/acsu123/HohoV2/Free/BloxFruitTEST_ONLY.lua",
+    "https://raw.githubusercontent.com/acsu123/HOHO_H/main/HohoHub.lua",
+}
 
--- new_load.lua checks game.GameId. On some executors that field is absent, so
--- fill it in from the place id (the authoritative mapping) before running.
+-- new_load.lua and some builds check game.GameId. Fill it in from PlaceId when
+-- the executor leaves it empty (Blox Fruits = 994732206 for all three seas).
 pcall(function()
     if game.GameId == nil or game.GameId == 0 then
         local universe = ({
@@ -36,24 +53,36 @@ pcall(function()
     end
 end)
 
-local function run(url)
-    local ok, res = pcall(function()
+local CoreGui = game:GetService("CoreGui")
+
+local function loaded()
+    for _, n in ipairs({ "Hoho_Hub", "HohoHub", "Hоhо_раssсhесk" }) do
+        if CoreGui:FindFirstChild(n) then return true end
+    end
+    return false
+end
+
+local lastErr
+for _, url in ipairs(BUILDS) do
+    local ok, err = pcall(function()
         return loadstring(game:HttpGet(url, true))()
     end)
-    return ok, res
-end
-
-local ok, err = run(HOHO_LOADER)
-
-if not ok or not (game:GetService("CoreGui"):FindFirstChild("Hoho_Hub")) then
-    warn("[RPS] loader path failed (" .. tostring(err) .. "), calling HoHo directly")
-    local ok2, err2 = run(HOHO_BLOX)
-    if not ok2 then
-        warn("[RPS] HoHo failed: " .. tostring(err2))
+    if ok and loaded() then
         game:GetService("StarterGui"):SetCore("SendNotification", {
             Title = "Raf's Personal Script",
-            Text = "HoHo failed to load - see console",
-            Duration = 6,
+            Text = "HoHo loaded: " .. url:match("([^/]+)%.lua$"),
+            Duration = 5,
         })
+        return
     end
+    lastErr = err
+    warn("[RPS] " .. url:match("([^/]+)%.lua$") .. " failed: " .. tostring(err))
+    task.wait(1)
 end
+
+warn("[RPS] all HoHo builds failed: " .. tostring(lastErr))
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Raf's Personal Script",
+    Text = "HoHo failed - see console",
+    Duration = 6,
+})

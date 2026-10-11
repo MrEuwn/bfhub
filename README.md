@@ -1,42 +1,56 @@
-# Raf's Personal Script
-
-Runs **HoHo Hub** for Blox Fruits, **keyless**.
+# Raf's Personal Script - HoHo Hub launcher
 
 ```lua
 loadstring(game:HttpGet("https://raw.githubusercontent.com/MrEuwn/bfhub/main/bfhub.lua"))()
 ```
 
-Paste that in Delta while Blox Fruits is open. Press **RightCtrl** to show/hide
-the UI; a **HoHo** button also appears on screen.
+Paste in Delta with Blox Fruits open. RightCtrl (or the on-screen button) toggles
+the UI.
 
-## Why there is no key
+## Read this before asking for "newest, no key"
 
-HoHo's own loader, `acsu123/HOHO_H` -> `main/new_load.lua`, has **no key system
-and no ad gate**. It matches `game.GameId` against a table and runs that game's
-script. Audited: no `getkey`, `luarmor`, `linkvertise`, `lootlabs` or `work.ink`
-reference anywhere in it.
+The **newest** HoHo Blox Fruits build is **locked by Luarmor**, a server-side key
+service. Its loader is `HohoV2/main/ScriptLoad.lua`:
 
-The key-and-ads flow people complain about comes from a **different** loader,
-`acsu123/HohoV2` -> `main/ScriptLoad.lua`. This repo does not use that one.
+```lua
+GameList[994732206] = "e4aedc7ccd2bacd83555baa884f3d4b1"   -- Blox Fruits
+api = HttpGet("https://sdkapi-public.luarmor.net/library.lua")
+api.script_id = <that id>
+local status = api.check_key(key)          -- must be KEY_VALID
+if status.code == "KEY_VALID" then api.load_script(...) end
+```
 
-Blox Fruits GameId is `994732206` (verified: place 2753915549 -> universe
-994732206 -> "Blox Fruits" by Gamer Robot Inc), which maps to
-`main/HohoHub.lua`.
+The payload is **not in the GitHub repo**, and it cannot be fetched without a
+valid key - requesting the loader URL returns an HTML page, and `?key=NoKey`
+returns `Unauthorized`. The check runs on Luarmor's server, so it **cannot be
+patched from the client**. The key is not in the code to remove.
 
-## What this repo contains
+Anyone who tells you otherwise is selling you a key-logger or a re-upload.
 
-Just the launcher. HoHo itself is fetched live from the author's repo, so it
-stays current and we never redistribute it. If `new_load.lua` is ever gated or
-breaks, the launcher falls back to calling the Blox Fruits payload directly.
+## What this launcher does instead
+
+It runs HoHo's **own free/keyless builds**, newest first:
+
+| Build | Size | Obfuscator | Last commit |
+|---|---|---|---|
+| `Free/BloxFruitFreeV3.lua` | 2.17 MB | Luraph v14.2 | **2024-11-28** |
+| `Free/BloxFruitTEST_ONLY.lua` | 2.41 MB | Luraph v13.8.1 | 2024-01-20 |
+| `main/HohoHub.lua` | 2.63 MB | Luraph v13.5.8 | 2022-10-18 |
+
+Verified keyless: no `luarmor`, `script_key`, `check_key` or `load_script`
+anywhere in them. They are obfuscated, so they are run as-is - not modified, not
+redistributed (fetched live from the author's repo).
+
+**Trade-off:** the newest keyless build is from Nov 2024 and the game is now
+v30.0.8, so expect some features to be broken. That is the cost of skipping the
+key.
 
 ## Credits
 
-HoHo Hub by **acsu123** - https://github.com/acsu123/HOHO_H
-
-This is a launcher, not a copy: HoHo is fetched from its author's repository at
-run time and no part of it is redistributed here.
+HoHo Hub by **acsu123** - https://github.com/acsu123/HohoV2 and
+https://github.com/acsu123/HOHO_H
 
 ## Warning
 
-This is a cheat. It violates Roblox's terms of service and carries a real ban
-risk. Use an alt account.
+Cheating violates Roblox's terms of service and carries a real ban risk. Use an
+alt account.
