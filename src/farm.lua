@@ -25,11 +25,7 @@ return function(U, UI, C, win)
     -- bring mob: pull EVERY mob whose type matches the one being farmed onto
     -- the player, so the whole cluster stays in M1 range while you hover.
     local function bringSameType(name)
-        local r = U.root(); if not r or not name then return end
-        for _, m in ipairs(U.mobs(name)) do
-            local hrp = m:FindFirstChild("HumanoidRootPart")
-            if hrp then hrp.CFrame = r.CFrame * CFrame.new(0, 0, -3) end
-        end
+        U.bringMob(name, C.get("bringDist") or 300)
     end
 
     -- Travel to a mob and attack it. NoClip is forced on while moving so tween
@@ -117,7 +113,8 @@ return function(U, UI, C, win)
     end)
     s:toggle("Use Tween (smooth travel)", true, function(on) C.set("useTween", on) end)
     s:toggle("Fly / Hover (never fall)", true, function(on) C.set("fly", on) end)
-    s:toggle("Bring Mob (all same type)", false, function(on) bring = on end)
+    s:toggle("Bring Mob (all same type)", true, function(on) bring = on end)
+    s:dropdown("Bring Distance", { "100", "200", "300", "500" }, "300", function(v) C.set("bringDist", tonumber(v)) end)
     s:toggle("NoClip (no wall clipping while moving)", false, function(on) C.set("noclipAlways", on) end)
     s:toggle("Auto Farm Nearest", false, function(on) mode = on and "nearest" or nil end)
 

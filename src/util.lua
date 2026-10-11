@@ -410,4 +410,76 @@ function U.sendWebhook(extra)
     return ok
 end
 
+--=========================================================================
+-- Redz-style combat helpers (the methods that actually work in Blox Fruits)
+--=========================================================================
+
+-- Huge SimulationRadius makes the client own nearby NPCs, so client-side
+-- changes (kill, bring) replicate. Required by killAura + bringMob.
+function U.simRadius()
+    if sethiddenproperty then
+        pcall(function() sethiddenproperty(U.player, "SimulationRadius", math.huge) end)
+    end
+end
+
+-- Kill Aura: zero the Humanoid.Health of every mob in range. Needs simRadius.
+function U.killAura(radius)
+    radius = radius or 1500
+    local r = U.root(); if not r then return end
+    U.simRadius()
+    local function kill(_, m)
+        local h = m:FindFirstChildOfClass("Humanoid")
+        if h and h.Health > 0 then
+            local pp = m.PrimaryPart
+            if pp and (pp.Position - r.Position).Magnitude < radius then
+                pcall(function() h.Health = 0 end)
+                pcall(function() pp.Size = Vector3.new(75, 75, 75); pp.CanCollide = false end)
+            end
+        end
+    end
+    local e = U.enemies()
+    if e then for _, m in ipairs(e:GetChildren()) do kill(nil, m) end end
+    for _, m in ipairs(U.ReplicatedStorage:GetChildren()) do
+        if m:FindFirstChildOfClass("Humanoid") then kill(nil, m) end
+    end
+end
+
+-- Bring Mob: drag every mob of the given type onto the player, freeze it and
+-- enlarge its hitbox so M1 always connects. Without simRadius the server snaps
+-- them back (that is the "visual only" bug).
+function U.bringMob(name, dist)
+    local r = U.root(); if not r or not name then return end
+    dist = dist or 300
+    U.simRadius()
+    local function bring(_, m)
+        if m.Name ~= name and not string.find(m.Name, name, 1, true) then return end
+        local h = m:FindFirstChildOfClass("Humanoid")
+        local pp = m.PrimaryPart
+        if h and h.Health > 0 and pp then
+            local mag = (pp.Position - r.Position).Magnitude
+            if mag < dist and mag >= 1 then
+                pcall(function()
+                    pp.CFrame = r.CFrame * CFrame.new(0, 0, -3)
+                    pp.CanCollide = false
+                    pp.Size = Vector3.new(50, 50, 50)
+                    h.WalkSpeed = 0
+                    h.JumpPower = 0
+                    h:ChangeState(14)
+                    local an = h:FindFirstChild("Animator"); if an then an:Destroy() end
+                    if m:FindFirstChild("Head") then m.Head.CanCollide = false end
+                end)
+            end
+        end
+    end
+    local e = U.enemies()
+    if e then for _, m in ipairs(e:GetChildren()) do bring(nil, m) end end
+end
+
+-- Auto Haki: buso is a state flag on the character, not a fire-and-forget call.
+function U.autoHaki()
+    local c = U.player.Character
+    if not c then return end
+    if not c:FindFirstChild("HasBuso") then U.commF("Buso") end
+end
+
 return U

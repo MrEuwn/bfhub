@@ -92,7 +92,7 @@ return function(U, UI, C, win)
         if C.get("removeDamage") then
             local h = U.hum(); if h then h.Health = h.MaxHealth end
         end
-        if C.get("autoHaki") then U.commE("Buso"); U.commE("Ken") end
+        if C.get("autoHaki") then U.autoHaki(); U.commF("Ken") end
         if fly then
             local r = U.root()
             local bg = r and r:FindFirstChild("BFHubFly")

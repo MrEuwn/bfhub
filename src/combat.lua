@@ -66,13 +66,13 @@ return function(U, UI, C, win)
 
     function M.tick()
         if fast then U.fastAttack(); U.attackHit(C.get("hitbox") or 60) end
-        if aura then auraTick() end
+        if aura then U.killAura(C.get("auraRadius") and C.get("auraRadius") * 50 or 1500) end
         if god then
             local h = U.hum()
             if h then pcall(function() h.Health = h.MaxHealth end) end
         end
-        if buso then U.commE("Buso") end
-        if ken then U.commE("Ken") end
+        if buso then U.autoHaki() end
+        if ken then U.commF("Ken") end
         if buddha and os.clock() - lastBuddha > 1 then
             lastBuddha = os.clock()
             -- Buddha transform keybind is "Z"; a fruit skill activate is safer
