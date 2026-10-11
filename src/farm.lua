@@ -62,20 +62,22 @@ return function(U, UI, C, win)
         U.fastAttack()
         U.attackHit(C.get("auraRadius") or 120)
 
-        -- travel (tween by default, hard set if tween is off)
-        local dest = hrp.CFrame + farmPos()
+        -- travel: ORBIT the mob (angle +5 deg, radius 35). A parked hover is
+        -- exactly why farm looked visual-only; the sweep has to keep crossing.
+        local dest = U.orbitPos(hrp.CFrame, C.get("farmDist") or 20, 35)
         if C.get("useTween") == false then
             r.CFrame = dest
         else
             U.tweenTo(dest, 0.2)
         end
 
-        -- the Redz order: click, haki, equip tool, magnet
-        playerClick()
-        U.autoHaki()
+        -- real order: equip tool, haki, bring (physics), then fire the net hit
         local w = C.get("weapon")
         if w and w ~= "None" then U.equipWeapon(w) end
-        if C.get("bring") then U.magnetMob(name or mob.Name, r.CFrame * CFrame.new(0, 0, -6), C.get("bringDist") or 250) end
+        U.autoHaki()
+        if C.get("bring") then U.magnetMob(name or mob.Name, r.CFrame, C.get("bringDist") or 300) end
+        U.netAttack(C.get("auraRadius") or 120)
+        playerClick()
     end
 
     local function waitForMobs(name, timeout)

@@ -489,44 +489,130 @@ function U.instakill(radius)
     end
 end
 
--- Magnet / Bring Mob (MUXHUB method). The mob is pinned to a FIXED anchor in
--- front of the player and its HumanoidRootPart is blown up to 60 studs, so the
--- M1 hitbox always overlaps it even when the mob would otherwise sit below you.
--- Without the size bump the mob's tiny real hitbox never meets the swing.
+-- Bring Mob (the method real hubs use — recovered from deobfuscated source).
+-- A PlatformStand/Sit freeze is NOT it: the mob has to be dragged by physics so
+-- it keeps a live hitbox next to you. BodyVelocity + BodyGyro + Physics state.
 function U.magnetMob(name, anchor, dist)
     local r = U.root(); if not r or not name then return end
-    dist = dist or 400
-    anchor = anchor or (r.CFrame * CFrame.new(0, 0, -6))
-    U.simRadius()
-    local function fix(_, m)
-        if not (m.Name == name or string.find(m.Name, name, 1, true)) then return end
+    dist = dist or 300
+    anchor = anchor or r.CFrame
+    pcall(function()
+        sethiddenproperty(U.Players.LocalPlayer, "SimulationRadius", math.huge)
+        sethiddenproperty(U.Players.LocalPlayer, "MaxSimulationRadius", math.huge)
+    end)
+    local pos, rad2 = anchor.Position, dist * dist
+    for _, m in ipairs(U.enemies():GetChildren()) do
         local h = m:FindFirstChildOfClass("Humanoid")
-        local hrp = m:FindFirstChild("HumanoidRootPart") or m.PrimaryPart
-        if not (h and h.Health > 0 and hrp) then return end
-        local mag = (hrp.Position - r.Position).Magnitude
-        if mag > dist then return end
-        pcall(function()
-            hrp.Size = Vector3.new(60, 60, 60)     -- huge hitbox -> always hittable
-            hrp.CanCollide = false
-            hrp.Transparency = 1                   -- hide the box
-            h.PlatformStand = true
-            h.Sit = true
-            h.WalkSpeed = 0
-            h.JumpPower = 0
-            local an = h:FindFirstChild("Animator"); if an then an:Destroy() end
-            hrp.CFrame = anchor                    -- pinned, not chasing the player
-        end)
+        local hrp = m:FindFirstChild("HumanoidRootPart")
+        if h and hrp and m:FindFirstChild("CharacterReady") and h.Health > 0
+           and string.find(m.Name, name, 1, true)
+           and (hrp.Position - pos).Magnitude ^ 2 <= rad2 then
+            if not hrp:GetAttribute("BeingBrought") then
+                hrp:SetAttribute("BeingBrought", true)
+                for _, d in ipairs(m:GetDescendants()) do
+                    if d:IsA("BasePart") then
+                        d.CanCollide = false; d.CanTouch = false; d.Massless = true
+                        d.AssemblyLinearVelocity = Vector3.zero
+                        d.AssemblyAngularVelocity = Vector3.zero
+                    end
+                end
+                local lock = Instance.new("BodyVelocity")
+                lock.Name = "Lock"; lock.MaxForce = Vector3.new(9e9, 9e9, 9e9); lock.P = 9000
+                lock.Parent = hrp
+                local gyro = Instance.new("BodyGyro")
+                gyro.Name = "BringGyro"; gyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+                gyro.P, gyro.D = 30000, 1000; gyro.Parent = hrp
+                hrp.CanCollide = false; hrp.Massless = true
+                h.AutoRotate = false
+                h.PlatformStand = false
+                h.BreakJointsOnDeath = false
+                pcall(function() h:ChangeState(Enum.HumanoidStateType.Physics) end)
+                task.spawn(function()
+                    local target = pos + Vector3.new(math.random(-20,20)/100, math.random(-20,20)/100, math.random(-20,20)/100)
+                    local dv = target - hrp.Position
+                    local mag = dv.Magnitude
+                    if mag > 0.5 then
+                        lock.Velocity = dv.Unit * math.clamp(mag * 10, 20, 1200)
+                    else
+                        lock.Velocity = Vector3.zero
+                        pcall(function() hrp.CFrame = CFrame.new(target) end)
+                    end
+                    gyro.CFrame = anchor
+                end)
+            else
+                local lock = hrp:FindFirstChild("Lock")
+                local gyro = hrp:FindFirstChild("BringGyro")
+                if lock then
+                    local dv = pos - hrp.Position
+                    lock.Velocity = dv.Magnitude > 0.5 and dv.Unit * math.clamp(dv.Magnitude*10, 20, 1200) or Vector3.zero
+                end
+                if gyro then gyro.CFrame = anchor end
+            end
+        end
     end
-    local e = U.enemies()
-    if e then for _, m in ipairs(e:GetChildren()) do fix(nil, m) end end
 end
 
 U.bringMob = U.magnetMob
 
--- Farm offset above the mob (Redz "Farm Distance").
+-- Farm offset. Real hubs ORBIT the mob (angle steps 5 deg per call, radius 35)
+-- instead of parking above it: the sweep keeps crossing the mob's hitbox, so
+-- M1 connects. A fixed offset is what makes farm look "visual only".
+local _ang = 0
+function U.orbitPos(cf, dist, radius)
+    _ang = (_ang + 5) % 360
+    local a = math.rad(_ang)
+    radius = radius or 35
+    return cf + Vector3.new(math.sin(a) * radius, dist or 20, math.cos(a) * radius)
+end
+
 function U.farmPos(dist)
     dist = dist or 20
     return Vector3.new(0, dist, dist)
+end
+
+-- Real attack, recovered from deobfuscated source: fire the game's own Net
+-- remotes. A bare VirtualUser click does NOT damage; these do, and they pay.
+local _net
+local function net()
+    if _net then return _net end
+    local m = U.ReplicatedStorage:FindFirstChild("Modules")
+    local n = m and m:FindFirstChild("Net")
+    if n then _net = n end
+    return _net
+end
+
+function U.getHits(radius)
+    local r = U.root(); local out = {}
+    if not r then return out end
+    for _, folder in ipairs({ U.enemies(), workspace:FindFirstChild("Characters") }) do
+        if folder then
+            for _, m in ipairs(folder:GetChildren()) do
+                local h = m:FindFirstChildOfClass("Humanoid")
+                local hrp = m:FindFirstChild("HumanoidRootPart")
+                if h and hrp and h.Health > 0
+                   and (hrp.Position - r.Position).Magnitude <= (radius or 60) then
+                    table.insert(out, { m, m:FindFirstChild("Head") or hrp })
+                end
+            end
+        end
+    end
+    return out
+end
+
+-- Net attack: RegisterAttack:FireServer(0) then RegisterHit:FireServer(head, hits)
+function U.netAttack(radius)
+    local n = net(); if not n then return false end
+    local atk = n:FindFirstChild("RE/RegisterAttack")
+    local hit = n:FindFirstChild("RE/RegisterHit")
+    if not (atk and hit) then return false end
+    local hits = U.getHits(radius or 60)
+    if #hits == 0 then return false end
+    pcall(function()
+        atk:FireServer(0)
+        local head = table.remove(hits, 1)[2]
+        hit:FireServer(head, hits, nil, "")
+    end)
+    return true
 end
 
 -- Auto Haki: buso is a state flag on the character, not a fire-and-forget call.
