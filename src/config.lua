@@ -4,6 +4,13 @@
 local C = {}
 
 C.values = {
+    MirageHop = false,
+    MoonHop = false,
+    HopMax = 40,
+    HopDelay = 8,
+    HopMinPlayers = 0,
+    HopAutoOff = true,
+    SharedUrl = "",
     -- attack path: "m1" (combat framework) or "net" (RegisterHit remote)
     method = "m1",
     AimBotSkill = true,

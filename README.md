@@ -27,6 +27,8 @@ src/data.lua        109 quest rows, 36 bosses, 15 boss-farm rows, 10 spawners,
 src/ui.lua          lazy minimalist GUI
 src/farm.lua        Auto Farm Level / Nearest / Boss / Mastery
 src/quests.lua      the named farmers, unlocks, spawner remotes, material farm
+src/moon.lua        moon phase + Mirage detection, auto hop, shared jobIds
+src/moon.lua        moon phase + Mirage detection, auto hop, shared jobIds
 src/extras.lua      kill aura, skills, ESP, low-end, anti-AFK, walk-on-water
 src/pages.lua       11 tabs
 src/home.lua        Home status + debug panel
@@ -44,6 +46,8 @@ harness.lua         offline contract test (run with luau.exe)
 | Quests | Ken V2, Musketeer Hat, Saber, Rainbow Haki, Soul Guitar, Race V2, Second Sea, Third Sea, Elite Hunter + hops, race reroll / refund |
 | Items | teleport to fruit, store fruits, chest tween/bypass, raid, chip, haki color, legendary sword, TTK, Bartilo, CDK |
 | Teleport | island dropdown from the live `Locations` registry, sea 1/2/3, server id + join |
+| Server | moon phase + Mirage readout, hop until Mirage, hop until full moon, hop limits, shared jobId url, post my jobId |
+| Server | moon phase + Mirage readout, hop until Mirage, hop until full moon, hop limits, shared jobId url, post my jobId |
 | Shop | 47 codes, 11 fighting styles, 9 swords, 7 guns, ghoul/cyborg race, random fruit |
 | Visual | ESP fruits/chests/flowers/islands/players, low-end, anti-AFK, walk on water, panic mode |
 | Misc | auto stats, check boost, webhook, about |
@@ -62,6 +66,74 @@ harness.lua         offline contract test (run with luau.exe)
   in config (checked mechanically).
 - **Not tested in-game.** Paths and remotes are version-sensitive. Log tab prints every
   failure with a traceback; Home has Dump Environment.
+
+## Moon / Mirage server hunting (what is actually possible)
+
+Read this before expecting it to work like the hubs' "moon-servers" feature.
+
+**Detecting a full moon or a live Mirage in someone else's server from outside is
+impossible.** `https://games.roblox.com/v1/games/<placeId>/servers/Public` returns only
+`id`, `maxPlayers`, `playing`, `playerIds`, `fps`, `ping`, `name`, `vipServerId`,
+`accessCode`. No game state, and there is no endpoint that carries any. The hubs that
+appear to do this are reading a **Discord channel** where humans post jobIds (HoHo's
+`RODISCORD HOP FARM`, channels `〔🌚〕moon-servers` / `〔🏝〕mirage-servers`) — the
+script only teleports to the id someone else pasted.
+
+What this hub does instead:
+
+1. **Local detection** in the server you are in, the same way in-game moon checkers do
+   it: compare `Lighting.Sky.MoonTextureId` against the phase asset ids.
+   `9709149431` = Full Moon, `9709149052` = Next Night (waning gibbous, becomes full on
+   the next night) — that pair is what "3/4 moon" means here. `Lighting:GetMoonPhase()`
+   is deprecated and returns a constant, so it is not used.
+   Mirage is read from `workspace.Map.MysticIsland` / `MirageIsland`, then from the
+   `_WorldOrigin.Locations` registry.
+2. **Blind hop + re-read**: hop to a public server, read again, repeat up to a limit you
+   set. Empty servers are preferred (a fresh server has a fresh moon clock), then the
+   least full one. The counter shows how many hops it cost, so the real hit rate is
+   visible rather than promised.
+3. **Shared jobIds, the hubs' actual mechanism**: a URL of raw text containing jobIds
+   (a GitHub raw file or gist you keep, or a Discord channel export). It hops to the
+   first one. `Post My jobId To Webhook` sends your own `jobId=` line to your Discord
+   webhook when a moon or Mirage is up, so a second instance (or a friend) can pick it
+   up — that is how a private channel of finds gets built without a server.
+
+Public servers only, as asked: `servers/Public` never returns private servers, and
+nothing here touches the private-server endpoint.
+
+## Moon / Mirage server hunting (what is actually possible)
+
+Read this before expecting it to work like the hubs' "moon-servers" feature.
+
+**Detecting a full moon or a live Mirage in someone else's server from outside is
+impossible.** `https://games.roblox.com/v1/games/<placeId>/servers/Public` returns only
+`id`, `maxPlayers`, `playing`, `playerIds`, `fps`, `ping`, `name`, `vipServerId`,
+`accessCode`. No game state, and there is no endpoint that carries any. The hubs that
+appear to do this are reading a **Discord channel** where humans post jobIds (HoHo's
+`RODISCORD HOP FARM`, channels `moon-servers` / `mirage-servers`) - the script only
+teleports to the id someone else pasted.
+
+What this hub does instead:
+
+1. **Local detection** in the server you are in, the same way in-game moon checkers do
+   it: compare `Lighting.Sky.MoonTextureId` against the phase asset ids.
+   `9709149431` = Full Moon, `9709149052` = Next Night (waning gibbous, becomes full on
+   the next night) - that pair is what "3/4 moon" means here. `Lighting:GetMoonPhase()`
+   is deprecated and returns a constant, so it is not used.
+   Mirage is read from `workspace.Map.MysticIsland` / `MirageIsland`, then from the
+   `_WorldOrigin.Locations` registry.
+2. **Blind hop + re-read**: hop to a public server, read again, repeat up to a limit you
+   set. Empty servers are preferred (a fresh server has a fresh moon clock), then the
+   least full one. The counter shows how many hops it cost, so the real hit rate is
+   visible rather than promised.
+3. **Shared jobIds, the hubs' actual mechanism**: a URL of raw text containing jobIds
+   (a GitHub raw file or gist you keep, or a Discord channel export). It hops to the
+   first one. `Post My jobId To Webhook` sends your own `jobId=` line to your Discord
+   webhook when a moon or Mirage is up, so a second instance (or a friend) can pick it
+   up - that is how a private channel of finds gets built without a server.
+
+Public servers only, as asked: `servers/Public` never returns private servers, and
+nothing here touches the private-server endpoint.
 
 ## Deliberately not included
 

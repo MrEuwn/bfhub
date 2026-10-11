@@ -111,7 +111,6 @@ function M.init(_U, _C, _UI, _w, deps)
         win:toggle(c, "Hop If Rengoku", "AutoRengokuHop")
         win:toggle(c, "Hop If Tushita", "AutoTushitaHop")
         win:toggle(c, "Hop If Rainbow Haki", "RainbowHakiHop")
-        win:button(c, "Server Hop Now", function() M.serverHop() end)
         c = win:card(page, "Race")
         win:button(c, "Race Reroll", function() U.F("BlackbeardReward", "Reroll", "1") end)
         win:button(c, "Race Reroll (2)", function() U.F("BlackbeardReward", "Reroll", "2") end)
@@ -209,6 +208,41 @@ function M.init(_U, _C, _UI, _w, deps)
         win:toggle(c, "Anti-AFK", "AntiAFK")
         win:toggle(c, "Walk On Water", "WalkOnWater")
         win:toggle(c, "Panic Mode", "PanicMode")
+    end)
+
+    -- SERVER HUNT -----------------------------------------------------------
+    win:tab("Server", function(page)
+        local c = win:card(page, "State")
+        local info = win:label(c, "reading...")
+        win:button(c, "Refresh", function() U.notify("refreshed") end)
+        win:label(c, "detection only works in the server you are IN - a public server list carries no game state",
+            Color3.fromRGB(150, 155, 170))
+
+        c = win:card(page, "Auto Hop")
+        win:toggle(c, "Hop Until Mirage Island", "MirageHop")
+        win:toggle(c, "Hop Until Full Moon", "MoonHop")
+        win:toggle(c, "Switch Off At Limit", "HopAutoOff")
+        win:slider(c, "Max Hops", "HopMax", 5, 200, 5)
+        win:slider(c, "Seconds Between Hops", "HopDelay", 4, 30, 1)
+        win:slider(c, "Skip Servers Below", "HopMinPlayers", 0, 12, 1)
+        win:button(c, "Hop Once Now", function() M.hop() end)
+        win:button(c, "Reset Counter", function() M.reset() U.notify("counter reset") end)
+
+        c = win:card(page, "Shared jobIds")
+        win:label(c, "same idea as the hubs' moon/mirage discord channels: hop to a jobId someone posted",
+            Color3.fromRGB(150, 155, 170))
+        win:textbox(c, "URL (raw text with jobIds)", "SharedUrl", "https://raw.githubusercontent.com/...")
+        win:button(c, "Hop To First Shared jobId", function() M.fetchShared() end)
+        win:button(c, "Post My jobId To Webhook", "only when a moon/mirage is up", function() M.post() end)
+
+        task.spawn(function()
+            while win.gui.Parent do
+                local hops, found, phase, mirage = M.stats()
+                info.Text = string.format("moon: %s\nmirage: %s\nhops: %d   found: %d",
+                    tostring(phase), tostring(mirage), hops, found)
+                task.wait(1)
+            end
+        end)
     end)
 
     -- MISC ------------------------------------------------------------------
