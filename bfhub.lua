@@ -1,13 +1,22 @@
 --[[
-  BFHub - Blox Fruits script hub (Delta / mobile friendly, no UI library).
-  Paste this file into Delta and execute. Modules are fetched from GitHub raw
-  so you only ever paste this one file. A Home tab reports load status.
+  Raf's Personal Script - entry point.
 
-  Module convention: a file either returns a value directly (util, ui, quests)
-  or a factory function `return function(U, UI, C, win) ... end` (config,
-  features). run() executes the chunk, then calls the result if it is a
-  function, so both styles work with one code path.
+  The feature set is the RECOVERED Blox Fruits hub (deobfuscated from a Luraph
+  v15 protected build of "Speed Hub X v5.5.0"). It carries the original engine -
+  quest farming, bring-mob, mastery, chests, sea events, ESP, raids, race
+  upgrades - and runs against our own lightweight UI (uilib.lua) instead of the
+  author's obfuscated UI library.
+
+  Stripped from the original: the key system, the luarmor loader, and a telemetry
+  webhook that phoned home to the author's repo.
+
+  Paste one line in Delta:
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/MrEuwn/bfhub/main/bfhub.lua"))()
+
+  Module convention: a file either returns a value directly (util, uilib, funcs,
+  quests) or a factory `return function(...) ... end` (config, hub, extras).
 ]]
+
 local REPO   = "MrEuwn/bfhub"
 local BRANCH = "main"
 local BASE   = ("https://raw.githubusercontent.com/%s/%s/src/"):format(REPO, BRANCH)
@@ -17,7 +26,7 @@ local function fetch(name)
     for _ = 1, 3 do
         local ok, src = pcall(function() return game:HttpGet(BASE .. name .. ".lua") end)
         if ok and type(src) == "string" and #src > 0 then
-            local fn, err = loadstring(src, "BFHub:" .. name)
+            local fn, err = loadstring(src, "RPS:" .. name)
             if fn then return fn end
             return nil, "compile: " .. tostring(err)
         end
@@ -41,54 +50,62 @@ local function run(name, ...)
     return v
 end
 
-local U, e1 = run("util");   assert(U,  "util: "   .. tostring(e1))
-local UI, e2 = run("ui");    assert(UI, "ui: "     .. tostring(e2))
-local C, e3 = run("config", U); assert(C, "config: " .. tostring(e3))
+-- Base -----------------------------------------------------------------------
+local U, e1 = run("util");      assert(U, "util: "   .. tostring(e1))
+local C, e2 = run("config", U); assert(C, "config: " .. tostring(e2))
 
--- quest table (level range -> quest name/number/mob/giver position)
-local quests, eq = run("quests")
+-- Quest table feeds our own auto-farm-level extra. The recovered hub ships its
+-- own quest logic, so this stays optional.
+local quests = run("quests")
 C.quests = (type(quests) == "table") and quests or {}
 
--- sensible defaults on first run (auto haki, kill aura, tween travel, fly)
+-- Defaults: the recovered hub owns its own config keys; these are ours.
 C.set("useTween", true)
 C.set("fly", true)
-C.set("auraRadius", 30)
 C.set("hitbox", 120)
 C.set("auraRadius", 120)
-C.set("farmDist", 20)
-C.set("clickDelay", 0.18)
 C.set("bring", true)
-C.set("bringDist", 250)
+C.set("bringDist", 300)
 C.set("weapon", "Melee")
 
-local win = UI.new("Raf's Personal Script")
-C.win = win
+-- UI shim (replaces the author's obfuscated Lib_5.5.0.lua) + FuncsV3 adapter.
+local UILib, e3 = run("uilib"); assert(UILib, "uilib: " .. tostring(e3))
+local lib = UILib.new()
 
--- Home tab reports exactly what loaded and any error, so a broken module is
--- never a silent empty window.
-local home = win:tab("Home")
-local st = home:section("Load Status")
-local info = st:paragraph("loading modules...")
-local lines = {}
-local function say(s) table.insert(lines, s); info.Text = table.concat(lines, "\n") end
-say("Raf's Personal Script - Sea " .. tostring(U.currentSea()) .. "  Lv." .. tostring(U.level()))
-say("quests: " .. tostring(#C.quests) .. " rows")
-say("repo: " .. REPO .. "@" .. BRANCH)
+local Funcs, e4 = run("funcs"); assert(Funcs, "funcs: " .. tostring(e4))
 
-local ORDER = { "farm", "combat", "fruit", "esp", "teleport", "sea", "bones", "boss", "mastery", "stats", "debug", "log", "shop", "codes", "misc" }
+U.notify("Raf's Personal Script - starting", 3)
+
+-- The recovered hub (owns the full feature set and its own window) ------------
+local hubwin, err = run("hub", U, nil, C, nil, lib, Funcs)
+if type(hubwin) ~= "table" then
+    warn("[RPS] hub failed: " .. tostring(err))
+    U.notify("Hub error - check console", 6)
+end
+
+-- Our extra modules use a tiny win:tab(...):section(...) API; map it onto the
+-- hub's window so everything lands in one place.
+local win
+if type(hubwin) == "table" and type(hubwin.CreateTab) == "function" then
+    win = {
+        tab = function(_, name)
+            local t = hubwin:CreateTab({ Name = name })
+            return { section = function(_, sname) return t:AddSection(sname) end }
+        end,
+    }
+end
+
+-- Extra modules (our own additions; the hub covers the rest) ------------------
+local ORDER = { "log" }
 local mods, loaded = {}, {}
 for _, name in ipairs(ORDER) do
-    local ok, mod = U.safe("load:" .. name, run, name, U, UI, C, win)
-    if ok and type(mod) == "table" then
+    local o, mod = U.safe("load:" .. name, run, name, U, nil, C, win)
+    if o and type(mod) == "table" then
         mod.name = name
         table.insert(mods, mod)
         table.insert(loaded, name)
-        say("[ok] " .. name)
-    else
-        say(("[x] %s - %s"):format(name, tostring(mod)))
     end
 end
-say(("done: %d/%d modules"):format(#loaded, #ORDER))
 
 task.spawn(function()
     while true do
@@ -99,23 +116,4 @@ task.spawn(function()
     end
 end)
 
--- STOP TWEEN kill-switch (HoHo-style): one tap disables smooth travel.
-do
-    local pg = U.player:WaitForChild("PlayerGui")
-    local sg = pg:FindFirstChild("RPS")
-    if sg then
-        local b = Instance.new("TextButton")
-        b.Size = UDim2.fromOffset(96, 34); b.Position = UDim2.new(1, -104, 0.5, 40)
-        b.BackgroundColor3 = Color3.fromRGB(150, 45, 45); b.Text = "STOP TWEEN"
-        b.TextColor3 = Color3.fromRGB(255, 255, 255); b.Font = Enum.Font.GothamBold
-        b.TextSize = 12; b.BorderSizePixel = 0; b.Active = true; b.Draggable = true
-        b.Parent = sg
-        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 10); c.Parent = b
-        b.MouseButton1Click:Connect(function()
-            C.set("useTween", false)
-            U.notify("Tween stopped (travel is now instant)")
-        end)
-    end
-end
-
-U.notify("Raf's Personal Script loaded - " .. #loaded .. "/" .. #ORDER .. " modules")
+U.notify("Raf's Personal Script loaded - hub + " .. #loaded .. " extras", 4)
