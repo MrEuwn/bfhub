@@ -1,59 +1,50 @@
 # Raf's Personal Script
 
-Blox Fruits script hub. No UI library (raw `Instance.new` GUI) -> smallest footprint on mobile executors like Delta.
-
-## Run
+Blox Fruits hub for Delta (mobile). One paste line:
 
 ```lua
 loadstring(game:HttpGet("https://raw.githubusercontent.com/MrEuwn/bfhub/main/bfhub.lua"))()
 ```
 
-`bfhub.lua` fetches the modules under `src/` at runtime, so you only paste one line and repo updates apply instantly.
+## What this is
 
-## Tabs
+The feature set is a **recovered hub**: the Blox Fruits build of "Speed Hub X
+v5.5.0" was protected with Luraph v15, deobfuscated to readable Luau
+(191 KB, 6764 lines), and grafted onto our own lightweight UI.
 
-- **Farm** - Auto Farm Nearest, Auto Farm Level (accepts the quest for your level and completes it automatically), Selected Mob (live list), Bring Mob (all same-type), NoClip, Tween, weapon category (Melee/Sword/Gun/Fruit), chest/berry/material.
-- **Combat** - fast attack, kill aura, god mode, auto buso/ken, auto Buddha, race v4.
-- **Fruit** - sniper, auto store, mastery, notifier.
-- **ESP** - fruit / chest / island / player / enemy.
-- **Teleport** - live island list (Sea 1/2/3) + nearest player.
-- **Sea Events** - Auto Mirage (hop -> stop -> tp), full moon, kitsune, prehistoric.
-- **Bones** - auto farm bone (Haunted Castle) + auto roll bone.
-- **Boss** - Auto Tyrant of the Skies (farm Tiki mobs -> break pots -> kill), generic boss farm.
-- **Mastery** - auto mastery farm + buy/learn fighting styles.
-- **Debug** - live FPS, ping, time played, level, farm target, quest state, mobs nearby, job id.
-- **Shop** - buy items via the buy remote.
-- **Misc** - noclip, infinite jump, fly, walk on water, server hop, anti-afk, FPS boost, anti-night, low-end mode.
-
-Floating **STOP TWEEN** button (right edge) disables smooth travel instantly.
-
-## Farm system
-
-1. **Auto to mob** - flies to the target mob (`root.CFrame = mob.HRP.Position + (0,12,0)`).
-2. **Bring mob** - pulls EVERY mob of the same type onto you, so the whole cluster stays in M1 range.
-3. **NoClip forced while moving** - tween/flight never clips a wall.
-4. **Auto hit** - equips the chosen weapon category, activates it and clicks.
-5. **Wait + repeat** - when the mobs are dead it waits for respawn and keeps hitting until the quest counter is satisfied (quests complete automatically server-side; there is no CompleteQuest remote).
-
-## UI
-
-Hand-built from `Instance.new` (no UI library) so it stays tiny on mobile. Calm dark palette, soft periwinkle accent, rounded cards, scrollable tab rail + pages. Floating **R** button reopens it after minimizing.
+- **149 controls across 37 sections** - the original feature set, intact.
+- **No key system.** The original's key check and luarmor loader are stripped.
+- **No telemetry.** A webhook that phoned home to the author's repo is removed.
+- **Our own UI.** The author's UI library was itself obfuscated, so it was
+  replaced by `src/uilib.lua` (raw `Instance.new`, ~18 KB) which implements the
+  same call surface. That keeps it light on mobile.
 
 ## Layout
 
 ```
-bfhub.lua          entry point (paste this)
-src/util.lua       services, tp/tween, remotes, Enemies helpers, noclip, ping
-src/ui.lua         minimal custom GUI + floating toggle button
-src/config.lua     runtime state store
-src/quests.lua     81-row quest table (Sea 1/2/3, level 1-2524)
-src/farm.lua  combat.lua  fruit.lua  esp.lua  teleport.lua
-src/sea.lua  bones.lua  boss.lua  mastery.lua  debug.lua  shop.lua  misc.lua
+bfhub.lua        entry: fetches modules, runs the hub, adds extras
+src/util.lua     services, teleport, tween, notify
+src/config.lua   config store
+src/quests.lua   81-row quest table (level range -> quest/mob/position)
+src/uilib.lua    UI shim (Instance.new) - replaces the obfuscated library
+src/funcs.lua    FuncsV3 adapter (thin, readable upstream)
+src/hub.lua      the recovered hub body (180 KB)
+src/log.lua      error log + webhook reporting
+reference/       the deobfuscated source + notes, for study
 ```
 
-## Status / caveats
+## Feature map (from the recovered hub)
 
-- All files pass `luau-compile`; an offline harness loads every module and checks the quest table. Not runtime-tested in-game.
-- Remote args (`StartQuest`, `Buy`, Death King roll, Race V4) are best-effort and version-sensitive; each is marked with a `ponytail:` comment.
-- Mob detection uses `workspace.Enemies`; island/fruit/event detection uses live game state, not hardcoded coords.
-- Using this violates Roblox ToS. Test on an alt.
+Configuration, Local Player, Server Manager, Stat Manager, Stack Farming, Hop
+Boss, Level Farming, Nearest Enemy Farming, Mastery Farming, Collection
+Farming, Boss Farming, Material Farming, Third World, Dragon Hunter, Tyrant of
+the Skies, Citizen Quest, Kitsune Island, Sea Event, Leviathan Farming, Wood
+Planks, Prehistoric Island, Sea Items, Fruits, Shop, Automation Fishing, Mirage
+Island, Upgrade Race, Raid, ESP, Anti-Cheat Bypass, Team, Menu UI, Redeem,
+Water, Remove Effects, Automations, Reset Config.
+
+## Notes
+
+- Roblox ToS: this is a cheat. Ban risk is real. Use an alt account.
+- `reference/deobf-bloxfruit-v15-full.lua` is the raw deobfuscated source.
+- `reference/hoho-feature-map.txt` is HoHo Hub's own feature tree.
