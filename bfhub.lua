@@ -63,7 +63,7 @@ say("BFHub - Sea " .. tostring(U.currentSea()) .. "  Lv." .. tostring(U.level())
 say("quests: " .. tostring(#C.quests) .. " rows")
 say("repo: " .. REPO .. "@" .. BRANCH)
 
-local ORDER = { "farm", "combat", "fruit", "esp", "teleport", "sea", "bones", "boss", "mastery", "debug", "log", "shop", "misc" }
+local ORDER = { "farm", "combat", "fruit", "esp", "teleport", "sea", "bones", "boss", "mastery", "stats", "debug", "log", "shop", "codes", "misc" }
 local mods, loaded = {}, {}
 for _, name in ipairs(ORDER) do
     local ok, mod = U.safe("load:" .. name, run, name, U, UI, C, win)

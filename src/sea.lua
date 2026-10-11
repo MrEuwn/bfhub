@@ -72,13 +72,72 @@ return function(U, UI, C, win)
         if v then U.tp(v, 40) U.notify("TP -> Mirage Island") else U.notify("Mirage not here") end
     end)
 
+    t:section("Kitsune / Ember")
+    s:toggle("Auto Kitsune Island (sail)", false, function(on) C.set("autoKitsune", on) end)
+    s:toggle("Auto Collect Azure Ember", false, function(on) C.set("autoEmber", on) end)
+    s:toggle("Auto Trade Azure Ember", false, function(on) C.set("autoTradeEmber", on) end)
+
+    t:section("Sea Beast / Wood")
+    s:toggle("Auto Farm Sea Beast", false, function(on) C.set("autoSeaBeast", on) end)
+    s:toggle("Auto Wood Planks", false, function(on) C.set("autoWood", on) end)
+    s:toggle("Buy New Boat", false, function(on) C.set("buyBoat", on) end)
+
     t:section("Other Events")
     s:toggle("Also target Full Moon", false, function(on) targets.fullmoon = on end)
     s:toggle("Also target Kitsune", false, function(on) targets.kitsune = on end)
     s:toggle("Also target Prehistoric", false, function(on) targets.prehistoric = on end)
     s:button("Server Hop (manual)", function() hop() end)
 
+    -- helpers for the sea-event toggles
+    local function fireflies()
+        local best, bd = nil, math.huge
+        local r = U.root()
+        for _, v in ipairs(workspace:GetChildren()) do
+            if v.Name == "Ember" or string.find(string.lower(v.Name), "ember", 1, true) then
+                local p = v:IsA("BasePart") and v or v:FindFirstChildWhichIsA("BasePart")
+                if p and r then
+                    local d = (p.Position - r.Position).Magnitude
+                    if d < bd then bd = d; best = p end
+                end
+            end
+        end
+        return best
+    end
+
+    local function seaEvents()
+        if C.get("autoEmber") then
+            local e = fireflies()
+            if e then U.tp(e, 4); U.touch(U.root(), e) end
+        end
+        if C.get("autoTradeEmber") then U.commF("Kitsune", "Trade") end
+        if C.get("buyBoat") then U.commF("BuyBoat") end
+        if C.get("autoKitsune") then
+            local isle = U.findIsland("kitsune")
+            if isle then U.tp(isle, 40) end
+        end
+        if C.get("autoSeaBeast") then
+            local b = U.nearestMob("Sea Beast") or U.nearestMob("Beast")
+            if b then
+                local r = U.root(); local hrp = b:FindFirstChild("HumanoidRootPart")
+                if r and hrp then r.CFrame = CFrame.new(hrp.Position + Vector3.new(0,12,0)); U.touch(r,hrp) end
+                U.attack()
+            end
+        end
+        if C.get("autoWood") then
+            local r = U.root()
+            if r then
+                for _, v in ipairs(workspace:GetChildren()) do
+                    if string.find(string.lower(v.Name), "wood", 1, true) or string.find(string.lower(v.Name), "plank", 1, true) then
+                        local p = v:FindFirstChildWhichIsA("BasePart")
+                        if p then r.CFrame = CFrame.new(p.Position + Vector3.new(0,4,0)); U.touch(r, p) end
+                    end
+                end
+            end
+        end
+    end
+
     function M.tick()
+        seaEvents()
         -- live status label
         status.Text = hasMirage() and "Mirage Island: SPAWNED" or "Mirage Island: not spawned"
 

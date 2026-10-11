@@ -40,7 +40,7 @@ function UI.new(title)
 
     local frame = Instance.new("Frame")
     frame.Name = "BFHubMain"
-    frame.Size = UDim2.fromOffset(420, 300)
+    frame.Size = UDim2.fromOffset(470, 340)
     frame.Position = UDim2.new(0.5, 0, 0.5, 40); frame.AnchorPoint = Vector2.new(0.5, 0.5)
     frame.BackgroundColor3 = Color3.fromRGB(16, 16, 21); frame.BorderSizePixel = 0
     frame.Active = true; frame.Draggable = true; frame.ClipsDescendants = true
@@ -64,17 +64,22 @@ function UI.new(title)
     min.Font = Enum.Font.GothamBold; min.TextSize = 18; min.BorderSizePixel = 0; min.Parent = top
     corner(min, 8)
 
-    local tabbar = Instance.new("Frame")
+    local tabbar = Instance.new("ScrollingFrame")
     tabbar.Name = "Tabs"
-    tabbar.Size = UDim2.new(0, 112, 1, -36); tabbar.Position = UDim2.new(0, 0, 0, 36)
+    tabbar.Size = UDim2.new(0, 118, 1, -36); tabbar.Position = UDim2.new(0, 0, 0, 36)
     tabbar.BackgroundColor3 = Color3.fromRGB(22, 22, 27); tabbar.BorderSizePixel = 0; tabbar.Parent = frame
+    tabbar.ScrollBarThickness = 3
+    tabbar.ScrollingDirection = Enum.ScrollingDirection.Y
+    tabbar.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    tabbar.CanvasSize = UDim2.new(0, 0, 0, 0)
+    tabbar.Active = true
     local list = Instance.new("UIListLayout"); list.Padding = UDim.new(0, 2); list.Parent = tabbar
     pad(tabbar, 4)
 
     local body = Instance.new("Frame")
     body.Name = "Body"
-    body.Size = UDim2.new(1, -112, 1, -36); body.Position = UDim2.new(0, 112, 0, 36)
-    body.BackgroundTransparency = 1; body.Parent = frame
+    body.Size = UDim2.new(1, -118, 1, -36); body.Position = UDim2.new(0, 118, 0, 36)
+    body.BackgroundTransparency = 1; body.ClipsDescendants = true; body.Parent = frame
 
     local pages = {}
     local win = {}
@@ -93,8 +98,15 @@ function UI.new(title)
         local page = Instance.new("ScrollingFrame")
         page.Size = UDim2.new(1, -8, 1, -8); page.Position = UDim2.new(0, 4, 0, 4)
         page.BackgroundTransparency = 1; page.BorderSizePixel = 0; page.Visible = false
-        page.ScrollBarThickness = 4; page.CanvasSize = UDim2.new(0, 0, 0, 0)
-        page.AutomaticCanvasSize = Enum.AutomaticSize.Y; page.Parent = body
+        page.ScrollBarThickness = 6
+        page.ScrollBarImageColor3 = ACCENT
+        page.CanvasSize = UDim2.new(0, 0, 0, 0)
+        page.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        page.ScrollingDirection = Enum.ScrollingDirection.Y
+        page.ElasticBehavior = Enum.ElasticBehavior.WhenScrollable
+        page.Active = true
+        page.ScrollingEnabled = true
+        page.Parent = body
         local ll = Instance.new("UIListLayout"); ll.Padding = UDim.new(0, 6); ll.Parent = page
         pad(page, 4)
         pages[name] = page

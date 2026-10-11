@@ -41,6 +41,11 @@ return function(U, UI, C, win)
     s:button("Server Hop", function() hop() end)
     s:toggle("Anti-AFK", false, function(on) antiAfk = on end)
 
+    t:section("Damage / Combat")
+    s:toggle("Remove Damage (god health loop)", false, function(on) C.set("removeDamage", on) end)
+    s:toggle("Auto Haki (Buso+Ken)", false, function(on) C.set("autoHaki", on) end)
+    s:button("Race Reroll (300 Bones)", function() U.commF("Bones", "Buy", 1, 3) end)
+
     t:section("Client")
     s:button("FPS Boost", function()
         for _, v in ipairs(U.Lighting:GetChildren()) do
@@ -84,6 +89,10 @@ return function(U, UI, C, win)
                 r.CFrame = CFrame.new(p.X, math.max(p.Y, 0.5), p.Z)
             end
         end
+        if C.get("removeDamage") then
+            local h = U.hum(); if h then h.Health = h.MaxHealth end
+        end
+        if C.get("autoHaki") then U.commE("Buso"); U.commE("Ken") end
         if fly then
             local r = U.root()
             local bg = r and r:FindFirstChild("BFHubFly")
