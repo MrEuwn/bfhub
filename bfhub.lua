@@ -6362,7 +6362,7 @@ local function fn2()
 	end)
 
 	result2:Button(v17:AddSection("Redeem"), "Redeem All Codes", "Redeem all available codes", function()
-		for _, v54 in pairs(loadstring(game:HttpGet("https://raw.githubusercontent.com/AhmadV99/Main/main/Codes_BloxFruit"))()) do
+		for _, v54 in loadstring(game:HttpGet("https://raw.githubusercontent.com/AhmadV99/Main/main/Codes_BloxFruit"))(), nil, nil do
 			tbl5.ReplicatedStorage.Remotes.Redeem:InvokeServer(v54)
 		end
 	end)
@@ -6469,3 +6469,6 @@ local function fn2()
 	tbl37[5] = 0.5
 	setNotification(v55, tbl37)
 end
+
+-- the key-system tail was the only place that called fn2; without this the hub loads and does nothing
+task.spawn(fn2)

