@@ -314,6 +314,24 @@ function U.questTitle()
     return t and t.Text or ""
 end
 
+-- Hover: cancels gravity so the character floats in place (no falling during
+-- farm). Uses a BodyVelocity pinned to zero; removed when turned off.
+function U.hover(on)
+    local r = U.root()
+    if on then
+        if r and not r:FindFirstChild("RPSHover") then
+            local bv = Instance.new("BodyVelocity")
+            bv.Name = "RPSHover"
+            bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+            bv.Velocity = Vector3.zero
+            bv.Parent = r
+        end
+    elseif r then
+        local b = r:FindFirstChild("RPSHover")
+        if b then b:Destroy() end
+    end
+end
+
 -- NoClip: turn collision off/on for every part of the character. Used by
 -- movement (tween/fly) so we do not clip walls, and forced on while farming.
 function U.applyNoClip(on)

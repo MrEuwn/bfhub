@@ -49,6 +49,12 @@ local C, e3 = run("config", U); assert(C, "config: " .. tostring(e3))
 local quests, eq = run("quests")
 C.quests = (type(quests) == "table") and quests or {}
 
+-- sensible defaults on first run (auto haki, kill aura, tween travel, fly)
+C.set("useTween", true)
+C.set("fly", true)
+C.set("auraRadius", 30)
+C.set("hitbox", 60)
+
 local win = UI.new("Raf's Personal Script")
 C.win = win
 

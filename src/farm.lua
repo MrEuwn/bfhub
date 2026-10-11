@@ -18,8 +18,8 @@ return function(U, UI, C, win)
     end
 
     local function travelTo(pos, yOff)
-        if C.get("useTween") then U.tweenTo(pos, C.get("tweenTime") or 0.4)
-        else U.tp(pos, yOff or 0) end
+        if C.get("useTween") == false then U.tp(pos, yOff or 0)
+        else U.tweenTo(pos, C.get("tweenTime") or 0.35) end
     end
 
     -- bring mob: pull EVERY mob whose type matches the one being farmed onto
@@ -41,7 +41,10 @@ return function(U, UI, C, win)
         if not h or not hrp or h.Health <= 0 then return false end
         if bring then bringSameType(name) end          -- pull the cluster to us
         U.applyNoClip(true)                            -- no wall clipping
-        r.CFrame = CFrame.new(hrp.Position + Vector3.new(0, 12, 0))
+        U.hover(true)                                  -- float, never fall
+        local dest = hrp.Position + Vector3.new(0, 12, 0)
+        if C.get("useTween") == false then r.CFrame = CFrame.new(dest)
+        else U.tweenTo(CFrame.new(dest), C.get("tweenTime") or 0.25) end
         U.touch(r, hrp)
         U.fastAttack()
         U.attack()                                     -- real M1 via RigControllerEvent
@@ -77,10 +80,11 @@ return function(U, UI, C, win)
             -- stand on the quest giver, then accept
             local qpos = CFrame.new(qx, qy, qz)
             local r = U.root()
-            if r and (r.Position - Vector3.new(qx, qy, qz)).Magnitude > 8 then
+            if r and (r.Position - Vector3.new(qx, qy, qz)).Magnitude > 6 then
                 U.applyNoClip(true)
-                travelTo(qpos, 0)
-                task.wait(0.3)
+                U.hover(true)
+                U.tweenTo(qpos, 0.5)      -- smooth travel to the quest NPC
+                task.wait(0.2)
             end
             U.commF("StartQuest", name, num)
             task.wait(0.4)
@@ -111,7 +115,8 @@ return function(U, UI, C, win)
     s:dropdown("Farm Speed", { "Fast (0.05)", "Normal (0.15)", "Slow (0.4)" }, "Normal (0.15)", function(v)
         C.set("farmSpeed", tonumber(string.match(v, "%d+%.%d+")) or 0.15)
     end)
-    s:toggle("Use Tween (smooth, slower)", false, function(on) C.set("useTween", on) end)
+    s:toggle("Use Tween (smooth travel)", true, function(on) C.set("useTween", on) end)
+    s:toggle("Fly / Hover (never fall)", true, function(on) C.set("fly", on) end)
     s:toggle("Bring Mob (all same type)", false, function(on) bring = on end)
     s:toggle("NoClip (no wall clipping while moving)", false, function(on) C.set("noclipAlways", on) end)
     s:toggle("Auto Farm Nearest", false, function(on) mode = on and "nearest" or nil end)
@@ -193,6 +198,8 @@ return function(U, UI, C, win)
     end
 
     function M.tick()
+        local farming = questFarm or mode == "nearest" or mode == "selected"
+        U.hover(farming and (C.get("fly") ~= false))   -- float while farming, no falling
         if C.get("noclipAlways") then U.applyNoClip(true) end
         U.fastAttack()                       -- keep M1 cooldowns at zero
         if C.get("hitbox") then U.setHitbox(C.get("hitbox")) end
