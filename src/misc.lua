@@ -50,6 +50,18 @@ return function(U, UI, C, win)
         U.Lighting.FogEnd = 1e6
         U.notify("FPS boost applied")
     end)
+    s:toggle("Low-End Mode (perf)", false, function(on)
+        C.set("useTween", not on)          -- tween off = less work
+        for _, v in ipairs(U.Lighting:GetChildren()) do
+            if v:IsA("PostEffect") then v.Enabled = false end
+        end
+        U.Lighting.GlobalShadows = false
+        U.Lighting.FogEnd = 1e6
+        pcall(function()
+            settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+        end)
+        U.notify(on and "Low-end mode ON" or "Low-end mode OFF")
+    end)
     s:button("Anti Night (bright)", function()
         U.Lighting.Brightness = 2
         U.Lighting.ClockTime = 14
@@ -58,12 +70,7 @@ return function(U, UI, C, win)
 
     local move = { f = false, b = false, l = false, r = false, u = false, d = false }
     U.RunService.RenderStepped:Connect(function(dt)
-        if noclip then
-            local c = U.player.Character
-            if c then for _, p in ipairs(c:GetDescendants()) do
-                if p:IsA("BasePart") then p.CanCollide = false end
-            end end
-        end
+        if noclip then U.applyNoClip(true) end
         if iJump then
             local h = U.hum()
             if h and h:GetState() == Enum.HumanoidStateType.Freefall then

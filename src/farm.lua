@@ -32,16 +32,31 @@ return function(U, UI, C, win)
         end
     end
 
-    -- Farm loop: fly to the target mob, (optionally) gather all same-type mobs
-    -- onto us, then attack. Bring makes travel unnecessary after the first pass.
-    local function kill(mob, speed, name)
-        local r = U.root(); if not r or not mob then return end
-        local h = mob:FindFirstChildOfClass("Humanoid"); if not h or h.Health <= 0 then return end
+    -- Travel to a mob and attack it. NoClip is forced on while moving so tween
+    -- / flight never clips a wall. Returns false if the mob died.
+    local function attackMob(mob, name)
+        local r = U.root(); if not r or not mob then return false end
+        local h = mob:FindFirstChildOfClass("Humanoid")
         local hrp = mob:FindFirstChild("HumanoidRootPart")
-        if hrp then r.CFrame = CFrame.new(hrp.Position + Vector3.new(0, 12, 0)) end  -- auto to mob
-        if bring then bringSameType(name) end
-        U.attack()
-        task.wait(speed or 0.15)
+        if not h or not hrp or h.Health <= 0 then return false end
+        if bring then bringSameType(name) end          -- pull the cluster to us
+        U.applyNoClip(true)                            -- no wall clipping
+        r.CFrame = CFrame.new(hrp.Position + Vector3.new(0, 12, 0))
+        U.touch(r, hrp)
+        U.attack()                                     -- auto hit
+        task.wait(C.get("farmSpeed") or 0.15)
+        return true
+    end
+
+    -- Wait for mobs to respawn, then keep hitting. Keeps the loop running until
+    -- the quest counter is satisfied (the quest completes automatically).
+    local function waitForMobs(name, timeout)
+        local t0 = os.clock()
+        while os.clock() - t0 < (timeout or 6) do
+            if #U.mobs(name) > 0 then return true end
+            task.wait(0.3)
+        end
+        return false
     end
 
     -- Auto quest: accept the quest for the current level, kill its mobs (quest
@@ -62,16 +77,24 @@ return function(U, UI, C, win)
             local qpos = CFrame.new(qx, qy, qz)
             local r = U.root()
             if r and (r.Position - Vector3.new(qx, qy, qz)).Magnitude > 8 then
+                U.applyNoClip(true)
                 travelTo(qpos, 0)
                 task.wait(0.3)
             end
             U.commF("StartQuest", name, num)
             task.wait(0.4)
         else
-            -- quest active: kill its mobs; kill() attacks until the mob dies and
-            -- the quest counter advances, completing automatically.
+            -- quest active: bring + hit its mobs; on a gap, wait for respawn and
+            -- keep going until the quest completes (no CompleteQuest remote).
+            C.set("farmTarget", mon)
             local mob = U.nearestMob(mon)
-            if mob then kill(mob, C.get("farmSpeed") or 0.15, mon) end
+            if mob then
+                attackMob(mob, mon)
+            elseif not waitForMobs(mon, 4) then
+                -- nothing of this type here: nudge toward the nearest enemy
+                local any = U.nearestMob(nil)
+                if any then attackMob(any, baseName(any.Name)) end
+            end
         end
     end
 
@@ -89,6 +112,7 @@ return function(U, UI, C, win)
     end)
     s:toggle("Use Tween (smooth, slower)", false, function(on) C.set("useTween", on) end)
     s:toggle("Bring Mob (all same type)", false, function(on) bring = on end)
+    s:toggle("NoClip (no wall clipping while moving)", false, function(on) C.set("noclipAlways", on) end)
     s:toggle("Auto Farm Nearest", false, function(on) mode = on and "nearest" or nil end)
 
     -- Selected mob: live list from workspace.Enemies, tap to cycle.
@@ -168,6 +192,7 @@ return function(U, UI, C, win)
     end
 
     function M.tick()
+        if C.get("noclipAlways") then U.applyNoClip(true) end
         -- keep the requested weapon equipped
         local w = C.get("weapon")
         if w and w ~= "None" then U.equipWeapon(w) end
@@ -175,10 +200,11 @@ return function(U, UI, C, win)
         if questFarm then
             if os.clock() - lastQuest > 0.4 then lastQuest = os.clock(); runQuest() end
         elseif mode == "nearest" then
-            local m = U.nearestMob(nil); if m then kill(m, C.get("farmSpeed"), baseName(m.Name)) end
+            local m = U.nearestMob(nil); if m then C.set("farmTarget", baseName(m.Name)); attackMob(m, baseName(m.Name)) end
         elseif mode == "selected" then
-            local m = U.nearestMob(C.get("farmMobName") or selMon)
-            if m then kill(m, C.get("farmSpeed"), C.get("farmMobName") or selMon) end
+            local nm = C.get("farmMobName") or selMon
+            local m = U.nearestMob(nm)
+            if m then C.set("farmTarget", nm); attackMob(m, nm) else waitForMobs(nm, 3) end
         end
 
         if chest then goTouch("chest") end

@@ -245,4 +245,22 @@ function U.questTitle()
     return t and t.Text or ""
 end
 
+-- NoClip: turn collision off/on for every part of the character. Used by
+-- movement (tween/fly) so we do not clip walls, and forced on while farming.
+function U.applyNoClip(on)
+    local c = U.player.Character
+    if not c then return end
+    for _, p in ipairs(c:GetDescendants()) do
+        if p:IsA("BasePart") then p.CanCollide = not on end
+    end
+end
+
+-- Ping (ms) via Stats, and a lightweight FPS estimate. Both best-effort.
+function U.ping()
+    local ok, v = pcall(function()
+        return game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()
+    end)
+    return ok and math.floor(v) or 0
+end
+
 return U

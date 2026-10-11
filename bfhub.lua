@@ -63,7 +63,7 @@ say("BFHub - Sea " .. tostring(U.currentSea()) .. "  Lv." .. tostring(U.level())
 say("quests: " .. tostring(#C.quests) .. " rows")
 say("repo: " .. REPO .. "@" .. BRANCH)
 
-local ORDER = { "farm", "combat", "fruit", "esp", "teleport", "sea", "bones", "boss", "shop", "misc" }
+local ORDER = { "farm", "combat", "fruit", "esp", "teleport", "sea", "bones", "boss", "mastery", "debug", "shop", "misc" }
 local mods, loaded = {}, {}
 for _, name in ipairs(ORDER) do
     local mod, merr = run(name, U, UI, C, win)
@@ -86,5 +86,24 @@ task.spawn(function()
         task.wait(tonumber(C.get("tickRate")) or 0.1)
     end
 end)
+
+-- STOP TWEEN kill-switch (HoHo-style): one tap disables smooth travel.
+do
+    local pg = U.player:WaitForChild("PlayerGui")
+    local sg = pg:FindFirstChild("BFHub")
+    if sg then
+        local b = Instance.new("TextButton")
+        b.Size = UDim2.fromOffset(96, 34); b.Position = UDim2.new(1, -104, 0.5, 40)
+        b.BackgroundColor3 = Color3.fromRGB(150, 45, 45); b.Text = "STOP TWEEN"
+        b.TextColor3 = Color3.fromRGB(255, 255, 255); b.Font = Enum.Font.GothamBold
+        b.TextSize = 12; b.BorderSizePixel = 0; b.Active = true; b.Draggable = true
+        b.Parent = sg
+        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 10); c.Parent = b
+        b.MouseButton1Click:Connect(function()
+            C.set("useTween", false)
+            U.notify("Tween stopped (travel is now instant)")
+        end)
+    end
+end
 
 U.notify("BFHub loaded - " .. #loaded .. "/" .. #ORDER .. " modules")
