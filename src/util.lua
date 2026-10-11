@@ -116,6 +116,21 @@ function U.currentSea()
     for sea, place in pairs(U.SEA_PLACE) do
         if place == id then return sea end
     end
+    -- fallback: infer from the loaded island registry (PlaceId can change)
+    local loc = U.worldLocations()
+    if loc then
+        local names = {}
+        for _, v in ipairs(loc:GetChildren()) do names[string.lower(v.Name)] = true end
+        local function any(list)
+            for _, k in ipairs(list) do
+                for n in pairs(names) do if string.find(n, k, 1, true) then return true end end
+            end
+            return false
+        end
+        if any({ "port town", "hydra", "haunted", "floating turtle", "sea of treats", "tiki", "castle on the sea" }) then return 3 end
+        if any({ "kingdom of rose", "green zone", "graveyard", "cursed ship", "ice castle", "forgotten" }) then return 2 end
+        if any({ "bandit", "jungle", "pirate village", "desert", "frozen village", "marine fortress", "magma" }) then return 1 end
+    end
     return 0
 end
 
@@ -422,8 +437,26 @@ function U.simRadius()
     end
 end
 
--- Kill Aura: zero the Humanoid.Health of every mob in range. Needs simRadius.
+-- Kill Aura (REAL): a long-range M1. getBladeHits takes a range argument, so a
+-- big range makes one swing reach everything nearby; the hit goes through
+-- RigControllerEvent like a normal attack, so the server credits the kill and
+-- the player gets money/exp. (Setting Health = 0 does NOT — that is instakill,
+-- visual only, no rewards.)
 function U.killAura(radius)
+    radius = radius or 300
+    U.simRadius()
+    U.setHitbox(radius)
+    U.fastAttack()
+    U.attackHit(radius)
+    pcall(function()
+        U.VirtualUser:CaptureController()
+        U.VirtualUser:Button1Down(Vector2.new(math.huge, math.huge))
+    end)
+end
+
+-- Instakill: set Health = 0 directly. Instant clear but the server does NOT
+-- credit the kill, so no money/exp. Kept as a separate, off-by-default option.
+function U.instakill(radius)
     radius = radius or 1500
     local r = U.root(); if not r then return end
     U.simRadius()

@@ -40,8 +40,9 @@ return function(U, UI, C, win)
     local t = win:tab("Combat")
     local s = t:section("Attack")
     s:toggle("Fast Attack (no cooldown)", true, function(on) fast = on end)
-    s:toggle("Kill Aura", true, function(on) aura = on end)
-    s:dropdown("Aura Radius", { "20", "30", "50", "80" }, "30", function(v) C.set("auraRadius", tonumber(v)) end)
+    s:toggle("Kill Aura (long-range M1, real rewards)", true, function(on) aura = on end)
+    s:toggle("Instakill (fast, NO rewards)", false, function(on) C.set("instakill", on) end)
+    s:dropdown("Aura Radius (studs)", { "30", "60", "120", "300", "600" }, "60", function(v) C.set("auraRadius", tonumber(v)) end)
     s:dropdown("Hitbox Range", { "40", "60", "80", "120" }, "60", function(v)
         C.set("hitbox", tonumber(v)); U.setHitbox(tonumber(v))
     end)
@@ -66,7 +67,8 @@ return function(U, UI, C, win)
 
     function M.tick()
         if fast then U.fastAttack(); U.attackHit(C.get("hitbox") or 60) end
-        if aura then U.killAura(C.get("auraRadius") and C.get("auraRadius") * 50 or 1500) end
+        if aura then U.killAura(C.get("auraRadius") and C.get("auraRadius") * 10 or 300) end
+        if C.get("instakill") then U.instakill(C.get("auraRadius") and C.get("auraRadius") * 50 or 1500) end
         if god then
             local h = U.hum()
             if h then pcall(function() h.Health = h.MaxHealth end) end
