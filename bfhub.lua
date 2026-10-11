@@ -1,47 +1,15 @@
---[[
-  Raf's Personal Script - HoHo Hub launcher (keyless build).
+--[[ Raf's Personal Script - BFHub (keyless, open source, no obfuscation).
 
-  WHY NOT THE NEWEST BUILD:
-  HoHo's newest Blox Fruits build lives behind Luarmor (a server-side key
-  service). Its loader is:
-      HohoV2 main/ScriptLoad.lua
-        GameList[994732206] = "e4aedc7ccd2bacd83555baa884f3d4b1"  -- Blox Fruits
-        api = HttpGet("https://sdkapi-public.luarmor.net/library.lua")
-        api.script_id = <that id>
-        api.check_key(key)   -- must return KEY_VALID
-        api.load_script(...) -- THEN the payload is handed over
-  The payload is never in the GitHub repo and is not fetchable without a valid
-  key: requesting the loader URL directly returns an HTML page, and adding
-  ?key=NoKey returns "Unauthorized". That check is server-side, so it cannot be
-  patched from the client. Nobody can remove that key - it is not in the code.
+     Paste ONE line in Delta while Blox Fruits is open:
+       loadstring(game:HttpGet("https://raw.githubusercontent.com/MrEuwn/bfhub/main/bfhub.lua"))()
 
-  WHAT THIS RUNS:
-  HoHo's own free/keyless Blox Fruits builds, newest first. These carry no key
-  gate at all (verified: no luarmor / script_key / check_key anywhere):
-      1. Free/BloxFruitFreeV3.lua    2.17 MB  Luraph v14.2    2024-11-28  <- newest
-      2. Free/BloxFruitTEST_ONLY.lua 2.41 MB  Luraph v13.8.1  2024-01-20
-      3. main/HohoHub.lua            2.63 MB  Luraph v13.5.8  2022-10-18
-  They are obfuscated, so we run them as-is; we do not modify them.
-
-  Trade-off, stated plainly: the newest keyless build is from Nov 2024 and the
-  game is now v30.0.8, so some features may be broken. That is the cost of
-  skipping the key.
-
-  Paste one line in Delta (while Blox Fruits is open):
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/MrEuwn/bfhub/main/bfhub.lua"))()
-
-  Press RightCtrl (or the on-screen button) to show/hide the UI.
-  This is a cheat - use an alt account.
+     RightCtrl toggles the UI; a floating button restores it when hidden.
+     This is a cheat - use an alt account.
 ]]
 
-local BUILDS = {
-    "https://raw.githubusercontent.com/acsu123/HohoV2/Free/BloxFruitFreeV3.lua",     -- newest keyless
-    "https://raw.githubusercontent.com/acsu123/HohoV2/Free/BloxFruitTEST_ONLY.lua",
-    "https://raw.githubusercontent.com/acsu123/HOHO_H/main/HohoHub.lua",
-}
+local BASE = "https://raw.githubusercontent.com/MrEuwn/bfhub/main/"
 
--- new_load.lua and some builds check game.GameId. Fill it in from PlaceId when
--- the executor leaves it empty (Blox Fruits = 994732206 for all three seas).
+-- some builds read game.GameId; executors often leave it empty
 pcall(function()
     if game.GameId == nil or game.GameId == 0 then
         local universe = ({
@@ -53,36 +21,98 @@ pcall(function()
     end
 end)
 
-local CoreGui = game:GetService("CoreGui")
-
-local function loaded()
-    for _, n in ipairs({ "Hoho_Hub", "HohoHub", "Hоhо_раssсhесk" }) do
-        if CoreGui:FindFirstChild(n) then return true end
+-- raw.githubusercontent.com serves transient 404s right after a push: retry
+local function fetch(path)
+    local url, err = BASE .. path, nil
+    for _ = 1, 3 do
+        local ok, body = pcall(game.HttpGet, game, url)
+        if ok and type(body) == "string" and #body > 0 then return body end
+        err = body
+        task.wait(0.6)
     end
-    return false
+    error("fetch failed: " .. path .. " (" .. tostring(err) .. ")")
 end
 
-local lastErr
-for _, url in ipairs(BUILDS) do
-    local ok, err = pcall(function()
-        return loadstring(game:HttpGet(url, true))()
+local mods, report = {}, {}
+
+-- One uniform loader: a module may return a table (util/config/ui) OR a factory
+-- function that needs the deps (features). Mixing the two is the classic trap -
+-- calling the chunk once on a factory yields a function, not a table, and the
+-- entry then dies AFTER the GUI is already drawn (empty window, no error).
+local function load(name, deps)
+    local ok, res = pcall(function()
+        local chunk = loadstring(fetch("src/" .. name .. ".lua"), name)
+        local v = chunk()
+        if type(v) == "function" then
+            local a = table.pack(deps)
+            v = v(table.unpack(a, 1, a.n))
+        end
+        return v
     end)
-    if ok and loaded() then
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "Raf's Personal Script",
-            Text = "HoHo loaded: " .. url:match("([^/]+)%.lua$"),
-            Duration = 5,
-        })
-        return
+    if ok and res ~= nil then
+        table.insert(report, "[ok] " .. name)
+        return res
     end
-    lastErr = err
-    warn("[RPS] " .. url:match("([^/]+)%.lua$") .. " failed: " .. tostring(err))
-    task.wait(1)
+    table.insert(report, "[x] " .. name .. " -> " .. tostring(res))
+    warn("[BFHub] " .. name .. ": " .. tostring(res))
+    return nil
 end
 
-warn("[RPS] all HoHo builds failed: " .. tostring(lastErr))
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Raf's Personal Script",
-    Text = "HoHo failed - see console",
-    Duration = 6,
-})
+local U = load("util")
+if not U then
+    return game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "BFHub", Text = "util.lua failed - see console", Duration = 8,
+    })
+end
+local C = load("config")
+local Q = load("quests")   -- dependency of farm.lua, passed as deps
+
+U.modules = report
+function U.logText()
+    return table.concat(U.logs, "\n")
+end
+U.log("i", "BFHub loading, executor " .. tostring(identifyexecutor()))
+
+local UI = load("ui")
+local win
+if UI then
+    local ok, err = pcall(function() win = UI.new(U, C) end)
+    if not ok then
+        win = nil
+        U.log("x", "UI.new: " .. tostring(err))
+    end
+end
+
+-- feature modules: each returns a module with optional init()/tick()
+for _, name in ipairs({ "farm", "extras" }) do
+    local m = load(name)
+    if m then
+        U.safe("init " .. name, function()
+            if m.init then m.init(U, C, UI, win, { Q = Q }) end
+        end)
+        table.insert(mods, m)
+    end
+end
+
+-- tab modules build their UI only; they are not ticked
+if win then
+    for _, name in ipairs({ "pages", "home" }) do
+        local m = load(name)
+        if m and m.init then U.safe("init " .. name, function() m.init(U, C, UI, win) end) end
+    end
+    win:select("Home")
+end
+
+-- one scheduler for every feature module. mods must be an ARRAY: ipairs stops at
+-- the first nil, so a name-keyed dict would silently tick nothing.
+task.spawn(function()
+    while win == nil or win.gui.Parent ~= nil do
+        for _, m in ipairs(mods) do
+            if m.tick then U.safe("tick " .. tostring(m), m.tick, U, C) end
+        end
+        task.wait(C.get("lowend") and 0.25 or 0.15)
+    end
+end)
+
+U.notify("BFHub loaded - RightCtrl to toggle")
+U.log("i", "loaded, " .. #mods .. " feature modules")

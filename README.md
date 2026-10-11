@@ -1,54 +1,52 @@
-# Raf's Personal Script - HoHo Hub launcher
+# Raf's Personal Script - BFHub
+
+Own Blox Fruits hub, keyless, open source, no obfuscation. Built to match HoHo's
+structure (Home / Farm / Combat / Player / Misc / Log / Credits, live debug panel,
+feature search box, low-end mode) without any of its code.
 
 ```lua
 loadstring(game:HttpGet("https://raw.githubusercontent.com/MrEuwn/bfhub/main/bfhub.lua"))()
 ```
 
-Paste in Delta with Blox Fruits open. RightCtrl (or the on-screen button) toggles
+Paste in Delta with Blox Fruits open. RightCtrl (or the floating button) toggles
 the UI.
 
-## Read this before asking for "newest, no key"
+## Layout
 
-The **newest** HoHo Blox Fruits build is **locked by Luarmor**, a server-side key
-service. Its loader is `HohoV2/main/ScriptLoad.lua`:
-
-```lua
-GameList[994732206] = "e4aedc7ccd2bacd83555baa884f3d4b1"   -- Blox Fruits
-api = HttpGet("https://sdkapi-public.luarmor.net/library.lua")
-api.script_id = <that id>
-local status = api.check_key(key)          -- must be KEY_VALID
-if status.code == "KEY_VALID" then api.load_script(...) end
+```
+bfhub.lua           entry: fetch + load modules, one scheduler
+src/util.lua        services, remotes, mob finders, attack, bring, hover, logs
+src/config.lua      flat toggle store shared by UI rows and features
+src/quests.lua      level -> {mob, quest name, quest #, quest giver CFrame}
+src/ui.lua          raw Instance.new GUI (no library)
+src/farm.lua        auto farm level (quest -> travel -> bring -> hit)
+src/extras.lua      kill aura, ESP, auto stat, anti-AFK, low-end mode
+src/pages.lua       Farm / Combat / Player / Misc tabs
+src/home.lua        Home status + debug + Log + Credits
+harness.lua         offline contract test (run with luau.exe)
 ```
 
-The payload is **not in the GitHub repo**, and it cannot be fetched without a
-valid key - requesting the loader URL returns an HTML page, and `?key=NoKey`
-returns `Unauthorized`. The check runs on Luarmor's server, so it **cannot be
-patched from the client**. The key is not in the code to remove.
+## Verified
 
-Anyone who tells you otherwise is selling you a key-logger or a re-upload.
+- `luau-compile` clean on all 9 files.
+- `harness.lua` passes: every module returns a table or a factory, every `init()`
+  runs, one `tick()` runs, the quest table is contiguous (Sea 1: 1-650,
+  Sea 2: 700-1450, Sea 3: 1500-2525).
+- **Not tested in-game.** Paths and remotes are version-sensitive; the Log tab
+  prints every failure with a traceback instead of failing silently.
 
-## What this launcher does instead
+## How it works
 
-It runs HoHo's **own free/keyless builds**, newest first:
+Farm loop order: travel to the quest giver ->
+`CommF_:InvokeServer("StartQuest", name, n)` -> travel to the mob -> bring all
+mobs of that type (pin to a fixed anchor, blow up the hitbox) -> orbit the target
+-> real M1. Attack uses the combat framework (zero cooldowns + widen
+`hitboxMagnitude`, then a real click), so the server credits the kill for
+money/exp. A `net` method via `Net:RE/RegisterHit` is one button away if the
+framework path breaks.
 
-| Build | Size | Obfuscator | Last commit |
-|---|---|---|---|
-| `Free/BloxFruitFreeV3.lua` | 2.17 MB | Luraph v14.2 | **2024-11-28** |
-| `Free/BloxFruitTEST_ONLY.lua` | 2.41 MB | Luraph v13.8.1 | 2024-01-20 |
-| `main/HohoHub.lua` | 2.63 MB | Luraph v13.5.8 | 2022-10-18 |
-
-Verified keyless: no `luarmor`, `script_key`, `check_key` or `load_script`
-anywhere in them. They are obfuscated, so they are run as-is - not modified, not
-redistributed (fetched live from the author's repo).
-
-**Trade-off:** the newest keyless build is from Nov 2024 and the game is now
-v30.0.8, so expect some features to be broken. That is the cost of skipping the
-key.
-
-## Credits
-
-HoHo Hub by **acsu123** - https://github.com/acsu123/HohoV2 and
-https://github.com/acsu123/HOHO_H
+Instakill (`Humanoid.Health = 0`) is deliberately not offered: it is client-side,
+so no money and no exp.
 
 ## Warning
 
